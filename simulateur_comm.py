@@ -1,5 +1,4 @@
 import io
-import os
 import re
 import numpy as np
 import pandas as pd
@@ -94,12 +93,7 @@ df_raw = load_base_data()
 # 2. PARSING DMS (tolérant)
 # ==========================================
 def _dms_to_dec_single(txt):
-    """
-    Convertit une chaîne DMS en (lat, lon). Tolère :
-    - séparateurs ? ou °
-    - virgules
-    - ordre Lat/Lon inversé (détection par N/S vs E/W)
-    """
+    """Convertit une chaîne DMS en (lat, lon). Tolérant et robuste."""
     if not isinstance(txt, str):
         return None, None
     s = (txt.replace("?", "°")
@@ -123,10 +117,10 @@ def _dms_to_dec_single(txt):
 
 
 # ==========================================
-# 3. CHARGEMENT ROBUSTE DU FICHIER GPS CLIENTS
+# 3. CHARGEMENT DU FICHIER GPS (upload systématique)
 # ==========================================
 def _find_gps_column(columns):
-    """Détecte le nom de la colonne GPS parmi les alias courants."""
+    """Détecte la colonne GPS parmi les alias courants."""
     alias = (
         "gps", "coordonnees", "coordonnées", "coordonnee", "coordonnée",
         "position", "localisation", "coordonnees_gps", "point_gps",
@@ -139,27 +133,19 @@ def _find_gps_column(columns):
 
 
 @st.cache_data
-def load_gps_data(_uploaded_file=None):
+def load_gps_data(_uploaded_file):
     """
-    Charge le fichier GPS :
-      1) Coord_GPS.xlsx dans le dossier du script
-      2) Sinon le fichier uploadé
-    Lit automatiquement la PREMIÈRE feuille contenant des données GPS.
+    Charge le fichier GPS uploadé.
+    Détecte automatiquement :
+      - la feuille contenant une colonne GPS
+      - la colonne GPS (parmi les alias)
     """
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    default_path = os.path.join(base_dir, "Coord_GPS.xlsx")
-
-    source = None
-    if os.path.exists(default_path):
-        source = default_path
-    elif _uploaded_file is not None:
-        source = _uploaded_file
-    else:
+    if _uploaded_file is None:
         return pd.DataFrame()
 
     # --- Ouverture du classeur ---
     try:
-        xls = pd.ExcelFile(source)
+        xls = pd.ExcelFile(_uploaded_file)
         sheet_names = xls.sheet_names
     except Exception as e:
         st.error(f"❌ Impossible d'ouvrir le classeur : {e}")
@@ -169,7 +155,7 @@ def load_gps_data(_uploaded_file=None):
     sheet_to_use = None
     for sh in sheet_names:
         try:
-            tmp = pd.read_excel(source, sheet_name=sh, nrows=5)
+            tmp = pd.read_excel(_uploaded_file, sheet_name=sh, nrows=5)
             tmp.columns = [str(c).strip() for c in tmp.columns]
             if _find_gps_column(tmp.columns) is not None:
                 sheet_to_use = sh
@@ -177,7 +163,6 @@ def load_gps_data(_uploaded_file=None):
         except Exception:
             continue
 
-    # Fallback : noms usuels
     if sheet_to_use is None:
         for c in ["Feuil1", "Feuille1", "Sheet1", "GPS", "Coordonnees",
                   "Coordonnées", "Data", "Clients"]:
@@ -185,13 +170,12 @@ def load_gps_data(_uploaded_file=None):
                 sheet_to_use = c
                 break
 
-    # Fallback ultime : première feuille
     if sheet_to_use is None:
         sheet_to_use = sheet_names[0]
 
     # --- Lecture complète ---
     try:
-        df_gps = pd.read_excel(source, sheet_name=sheet_to_use)
+        df_gps = pd.read_excel(_uploaded_file, sheet_name=sheet_to_use)
     except Exception as e:
         st.error(f"❌ Erreur de lecture de la feuille `{sheet_to_use}` : {e}")
         return pd.DataFrame()
@@ -229,24 +213,12 @@ def load_gps_data(_uploaded_file=None):
     return df_gps.reset_index(drop=True)
 
 
-# --- Chargement initial (uploader si absent du serveur) ---
-_base_dir = os.path.dirname(os.path.abspath(__file__))
-_default_exists = os.path.exists(os.path.join(_base_dir, "Coord_GPS.xlsx"))
-
-if not _default_exists:
-    st.info(
-        "📂 Le fichier `Coord_GPS.xlsx` n'est pas présent sur le serveur. "
-        "Vous pouvez l'uploader ci-dessous pour afficher les points de vente. "
-        "*(Le nom de la feuille est détecté automatiquement, plus besoin qu'elle "
-        "s'appelle `Feuil1`.)*"
-    )
-    _uploaded = st.file_uploader(
-        "Charger le fichier Excel des coordonnées GPS",
-        type=["xlsx", "xls"],
-    )
-    df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
-else:
-    df_clients_gps = load_gps_data()
+# --- Upload systématique du fichier GPS ---
+_uploaded = st.file_uploader(
+    "Charger le fichier Excel des coordonnées GPS",
+    type=["xlsx", "xls"],
+)
+df_clients_gps = load_gps_data(_uploaded)
 
 
 # ==========================================
@@ -622,7 +594,6 @@ if not df_clients_gps.empty:
 
     # ---------- Mode 2 : Tous les PDV ----------
     else:
-        # Détection de la colonne agence dans le fichier GPS
         ag_col = None
         for c in df_clients_gps.columns:
             if str(c).strip().lower() in ("ag", "agence", "code_agence",
@@ -649,12 +620,9 @@ if not df_clients_gps.empty:
             df_map_filtered = df_clients_gps.copy()
 
         if len(df_map_filtered) > 3000:
-            st.info(
-                "ℹ️ Échantillon de 3 000 points affiché pour la fluidité."
-            )
+            st.info("ℹ️ Échantillon de 3 000 points affiché pour la fluidité.")
             df_map_filtered = df_map_filtered.sample(3000, random_state=42)
 
-        # Colonnes de hover disponibles
         hover_cols = {}
         for c in ["Nom CS2", "Nom client", "Description activité",
                   "Activite", "CS"]:
@@ -689,8 +657,8 @@ if not df_clients_gps.empty:
     st.plotly_chart(fig_map, use_container_width=True)
 
 else:
-    st.warning(
-        "⚠️ Aucune donnée GPS disponible. Uploadez le fichier Excel "
+    st.info(
+        "📂 Veuillez uploader le fichier Excel des coordonnées GPS ci-dessus "
         "pour afficher les points de vente."
     )
 
