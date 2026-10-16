@@ -1,4 +1,5 @@
 import io
+import os
 import re
 import numpy as np
 import pandas as pd
@@ -19,7 +20,25 @@ st.markdown(
 )
 
 # ==========================================
-# 1. DONNÉES DE BASE (VOLUMES, EFFECTIFS, ZONES BLANCHES PAR AGENCE)
+# COMPATIBILITÉ PLOTLY 5 / 6
+# ==========================================
+_HAS_SCATTER_MAPBOX = hasattr(px, "scatter_mapbox")
+
+
+def scatter_map_auto(df, **kwargs):
+    """
+    Wrapper compatible Plotly 5 (scatter_mapbox) et Plotly 6 (scatter_map).
+    En Plotly 6, `mapbox_style` devient `map_style`.
+    """
+    if _HAS_SCATTER_MAPBOX:
+        return px.scatter_mapbox(df, **kwargs)
+    if "mapbox_style" in kwargs:
+        kwargs["map_style"] = kwargs.pop("mapbox_style")
+    return px.scatter_map(df, **kwargs)
+
+
+# ==========================================
+# 1. DONNÉES DE BASE (VOLUMES, EFFECTIFS, ZONES BLANCHES)
 # ==========================================
 @st.cache_data
 def load_base_data():
@@ -73,11 +92,12 @@ def load_base_data():
 
 df_raw = load_base_data()
 
+
 # ==========================================
-# 2. CHARGEMENT DES COORDONNÉES GPS CLIENTS
+# 2. PARSING GPS (DMS -> décimal, tolérant)
 # ==========================================
 def _dms_to_dec_single(txt):
-    """Convertit une chaîne DMS en (lat, lon) décimal. Tolère ? ° , et ordre inversé."""
+    """Convertit une chaîne DMS en (lat, lon). Tolère ? ° , et ordre inversé."""
     if not isinstance(txt, str):
         return None, None
     s = (txt.replace("?", "°")
@@ -100,19 +120,39 @@ def _dms_to_dec_single(txt):
     return lat, lon
 
 
+# ==========================================
+# 3. CHARGEMENT DU FICHIER CLIENTS (avec chemin absolu + fallback upload)
+# ==========================================
 @st.cache_data
-def load_gps_data(path="Coord_GPS.xlsx"):
-    """Charge le fichier Excel des coordonnées clients et normalise les colonnes."""
-    try:
-        df_gps = pd.read_excel(path, sheet_name="Feuil1")
-    except Exception as e:
-        st.error(f"Erreur de lecture du fichier `{path}` : {e}")
+def load_gps_data(_uploaded_file=None):
+    """
+    Charge Coord_GPS.xlsx :
+    1) Chemin absolu basé sur __file__ (fonctionne sur Streamlit Cloud)
+    2) Fallback : fichier uploadé manuellement
+    """
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    default_path = os.path.join(base_dir, "Coord_GPS.xlsx")
+
+    df_gps = None
+    if os.path.exists(default_path):
+        try:
+            df_gps = pd.read_excel(default_path, sheet_name="Feuil1")
+        except Exception as e:
+            st.error(f"Erreur de lecture `{default_path}` : {e}")
+            return pd.DataFrame()
+    elif _uploaded_file is not None:
+        try:
+            df_gps = pd.read_excel(_uploaded_file, sheet_name="Feuil1")
+        except Exception as e:
+            st.error(f"Erreur de lecture du fichier uploadé : {e}")
+            return pd.DataFrame()
+    else:
         return pd.DataFrame()
 
+    # Nettoyage des noms de colonnes
     df_gps.columns = [str(c).strip() for c in df_gps.columns]
 
-    # La première ligne du fichier contient souvent les en-têtes répétés
-    # (Ag / Nom client / ...) — on la retire si c'est le cas
+    # Suppression de la ligne d'en-tête répétée (Ag / Nom client / ...)
     if not df_gps.empty and str(df_gps.iloc[0].get("Ag", "")).strip() == "Ag":
         df_gps = df_gps.iloc[1:].reset_index(drop=True)
 
@@ -120,11 +160,12 @@ def load_gps_data(path="Coord_GPS.xlsx"):
         st.error("La colonne `GPS` est absente du fichier Excel.")
         return pd.DataFrame()
 
+    # Parsing DMS
     coords = df_gps["GPS"].apply(_dms_to_dec_single)
     df_gps["Lat"] = [c[0] for c in coords]
     df_gps["Lon"] = [c[1] for c in coords]
 
-    # Nettoyage des coordonnées aberrantes (Madagascar uniquement)
+    # Filtrage Madagascar
     df_gps = df_gps.dropna(subset=["Lat", "Lon"])
     df_gps = df_gps[
         df_gps["Lat"].between(-26, -11) & df_gps["Lon"].between(42, 51)
@@ -132,10 +173,21 @@ def load_gps_data(path="Coord_GPS.xlsx"):
     return df_gps.reset_index(drop=True)
 
 
-df_clients_gps = load_gps_data()
+# Upload manuel si le fichier n'est pas trouvé côté serveur
+_base_dir = os.path.dirname(os.path.abspath(__file__))
+if not os.path.exists(os.path.join(_base_dir, "Coord_GPS.xlsx")):
+    st.warning(
+        "📂 Le fichier `Coord_GPS.xlsx` n'est pas présent sur le serveur. "
+        "Veuillez l'uploader ci-dessous pour afficher les points de vente."
+    )
+    _uploaded = st.file_uploader("Charger Coord_GPS.xlsx", type=["xlsx"])
+    df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
+else:
+    df_clients_gps = load_gps_data()
+
 
 # ==========================================
-# 2bis. CLIENTS SUPPLÉMENTAIRES (SUD — FORT-DAUPHIN / ANDROY)
+# 4. CLIENTS SUPPLÉMENTAIRES (SUD — FORT-DAUPHIN / ANDROY)
 # ==========================================
 @st.cache_data
 def load_clients_sup():
@@ -162,8 +214,9 @@ def load_clients_sup():
 
 df_clients_sup = load_clients_sup()
 
+
 # ==========================================
-# 3. PARAMÈTRES D'AJUSTEMENT (SIDEBAR)
+# 5. SIDEBAR — PARAMÈTRES
 # ==========================================
 st.sidebar.header("⚙️ Paramètres & Seuils d'Évaluation")
 
@@ -210,8 +263,9 @@ df = df_raw.copy()
 df.loc[df["Agence"] == selected_agence_zb, "Vol_ZB_Inclut_Mois_Hls"] = sim_zb_vol_mois
 df.loc[df["Agence"] == selected_agence_zb, "PDV_Estimes_ZB"] = sim_zb_pdv
 
+
 # ==========================================
-# 4. CALCULS DYNAMIQUES & MOYENNES NATIONALES
+# 6. CALCULS DYNAMIQUES & MOYENNES NATIONALES
 # ==========================================
 df["Total_CS_Propose"] = df["CS_Actuels"] + df["Ajustement_CS_DRV"]
 df["Evol_Vol_Abs"] = df["Vol_2027_Hls"] - df["Vol_2026_Hls"]
@@ -224,16 +278,10 @@ df["PDV_Par_CS"] = df["PDV_Total_Ajuste"] / df["Total_CS_Propose"]
 df["PDV_Par_MV"] = df["PDV_Total_Ajuste"] / df["MV"]
 df["Ratio_CS_MV"] = df["Total_CS_Propose"] / df["MV"]
 
-nat_vol_2026 = df["Vol_2026_Hls"].sum()
-nat_vol_2027 = df["Vol_2027_Hls"].sum()
-nat_cs = df["Total_CS_Propose"].sum()
-nat_mv = df["MV"].sum()
-nat_pdv = df["PDV_Total_Ajuste"].sum()
-
-nat_vol_cs = nat_vol_2027 / nat_cs
-nat_vol_mv = nat_vol_2027 / nat_mv
-nat_pdv_cs = nat_pdv / nat_cs
-nat_pdv_mv = nat_pdv / nat_mv
+nat_vol_cs = df["Vol_2027_Hls"].sum() / df["Total_CS_Propose"].sum()
+nat_vol_mv = df["Vol_2027_Hls"].sum() / df["MV"].sum()
+nat_pdv_cs = df["PDV_Total_Ajuste"].sum() / df["Total_CS_Propose"].sum()
+nat_pdv_mv = df["PDV_Total_Ajuste"].sum() / df["MV"].sum()
 
 st.subheader("🇲🇬 Indicateurs Clés de Référence (Moyenne Nationale)")
 kpi1, kpi2, kpi3, kpi4 = st.columns(4)
@@ -258,8 +306,7 @@ def get_statut_cs(pdv_cs):
 def get_statut_mv(vol_mv):
     if vol_mv >= seuil_surcharge_mv:
         return "🔴 Surcharge MV"
-    else:
-        return "🟢 Équilibré MV"
+    return "🟢 Équilibré MV"
 
 
 df["Statut_CS"] = df["PDV_Par_CS"].apply(get_statut_cs)
@@ -279,7 +326,7 @@ def color_status_cells(val):
 
 
 # ==========================================
-# 5. TABLEAU RÉCAPITULATIF
+# 7. TABLEAU RÉCAPITULATIF
 # ==========================================
 st.subheader("📊 Tableau Récapitulatif : Volumes 2026 vs 2027 & Effectifs")
 st.markdown(
@@ -330,7 +377,7 @@ st.dataframe(
 )
 
 # ==========================================
-# 6. MODULE ISOLÉ : SIMULATEUR AVANT / APRÈS
+# 8. SIMULATEUR AVANT / APRÈS
 # ==========================================
 st.markdown("---")
 st.markdown(
@@ -350,45 +397,29 @@ st.markdown(
 
 st.markdown('<div class="sim-container">', unsafe_allow_html=True)
 st.subheader("🔄 Module de Simulation Avant / Après : Ajustement des Effectifs (CS & MV)")
-st.markdown(
-    "Simulez l'impact d'un **recrutement ou transfert d'effectifs** (+/- CS et MV) "
-    "pour une agence et observez le recalcul automatique de la charge "
-    "(Volume & PDV) et du **code couleur de situation** :"
-)
 
 sc1, sc2, sc3 = st.columns(3)
 selected_sim_agence = sc1.selectbox(
     "Sélectionner l'Agence à simuler", df["Agence"].unique(), key="sim_agence_select"
 )
 delta_cs = sc2.number_input(
-    "Ajustement CS (+/- Recrutement/Transfert)", -15, 15, 0, step=1, key="sim_delta_cs"
+    "Ajustement CS (+/-)", -15, 15, 0, step=1, key="sim_delta_cs"
 )
 delta_mv = sc3.number_input(
-    "Ajustement MV (+/- Recrutement/Transfert)", -5, 5, 0, step=1, key="sim_delta_mv"
+    "Ajustement MV (+/-)", -5, 5, 0, step=1, key="sim_delta_mv"
 )
 
 row_sim_orig = df.loc[df["Agence"] == selected_sim_agence].iloc[0]
-
 mv_avant = row_sim_orig["MV"]
 cs_avant = row_sim_orig["Total_CS_Propose"]
 vol_2027_sim = row_sim_orig["Vol_2027_Hls"]
 pdv_tot_sim = row_sim_orig["PDV_Total_Ajuste"]
 
-vol_cs_avant = row_sim_orig["Vol_2027_Par_CS"]
-vol_mv_avant = row_sim_orig["Vol_2027_Par_MV"]
-pdv_cs_avant = row_sim_orig["PDV_Par_CS"]
-statut_cs_avant = row_sim_orig["Statut_CS"]
-statut_mv_avant = row_sim_orig["Statut_MV"]
-
 cs_apres = max(1, cs_avant + delta_cs)
 mv_apres = max(1, mv_avant + delta_mv)
-
 vol_cs_apres = vol_2027_sim / cs_apres
 vol_mv_apres = vol_2027_sim / mv_apres
 pdv_cs_apres = pdv_tot_sim / cs_apres
-
-statut_cs_apres = get_statut_cs(pdv_cs_apres)
-statut_mv_apres = get_statut_mv(vol_mv_apres)
 
 df_sim_comp = pd.DataFrame({
     "Dimension": [
@@ -398,14 +429,16 @@ df_sim_comp = pd.DataFrame({
     ],
     "Situation AVANT": [
         f"{mv_avant}", f"{cs_avant}", f"{cs_avant / mv_avant:.1f}",
-        f"{vol_cs_avant:,.0f}", f"{vol_mv_avant:,.0f}",
-        f"{pdv_cs_avant:.1f}", statut_cs_avant, statut_mv_avant,
+        f"{row_sim_orig['Vol_2027_Par_CS']:,.0f}",
+        f"{row_sim_orig['Vol_2027_Par_MV']:,.0f}",
+        f"{row_sim_orig['PDV_Par_CS']:.1f}",
+        row_sim_orig["Statut_CS"], row_sim_orig["Statut_MV"],
     ],
     "Situation APRÈS (Simulation)": [
         f"{mv_apres} ({delta_mv:+d})", f"{cs_apres} ({delta_cs:+d})",
         f"{cs_apres / mv_apres:.1f}", f"{vol_cs_apres:,.0f}",
         f"{vol_mv_apres:,.0f}", f"{pdv_cs_apres:.1f}",
-        statut_cs_apres, statut_mv_apres,
+        get_statut_cs(pdv_cs_apres), get_statut_mv(vol_mv_apres),
     ],
 })
 
@@ -418,7 +451,7 @@ st.dataframe(
 st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# 7. GRAPHIQUES DE VISUALISATION INTERACTIFS
+# 9. GRAPHIQUES
 # ==========================================
 st.markdown("---")
 st.subheader("📈 Visualisation Interactive : Agence vs Moyenne Nationale")
@@ -449,14 +482,14 @@ with g_cols[1]:
     st.plotly_chart(fig_pdv, use_container_width=True)
 
 # ==========================================
-# 8. SIMULATION FINANCIÈRE LIÉE À L'AGENCE
+# 10. SIMULATION FINANCIÈRE
 # ==========================================
 st.markdown("---")
 st.subheader("💰 Simulation Financière & Point Mort (Break-even) par Agence")
 
 fin_cols = st.columns(3)
 selected_fin_agence = fin_cols[0].selectbox(
-    "Choisir l'Agence pour la simulation financière", df["Agence"].unique()
+    "Choisir l'Agence", df["Agence"].unique()
 )
 cout_mensuel_cs = fin_cols[1].number_input(
     "Coût mensuel d'un CS (MGA)", 500000, 5000000, 1500000, 100000
@@ -476,39 +509,35 @@ couverture_besoin = (
     (vol_par_cs_agence / seuil_rentabilite_hl) * 100 if seuil_rentabilite_hl > 0 else 0
 )
 
-st.markdown(f"### 📋 Mode de calcul & Résultats pour : **{selected_fin_agence}**")
+st.markdown(f"### 📋 Résultats pour : **{selected_fin_agence}**")
 st.latex(
-    r"\text{Seuil de Rentabilité (Break-even)} = "
+    r"\text{Seuil de Rentabilité} = "
     r"\frac{\text{Coût Annuel du CS}}{\text{Marge Nette par Hl}}"
 )
 st.markdown(
-    f"- **Coût Annuel par CS :** {cout_mensuel_cs:,.0f} MGA $\\times$ 12 mois = "
+    f"- **Coût Annuel par CS :** {cout_mensuel_cs:,.0f} MGA $\\times$ 12 = "
     f"**{cout_annuel_cs:,.0f} MGA**"
 )
 st.markdown(
-    f"- **Volume nécessaire par CS pour rentabilité :** "
-    f"$\\frac{{{cout_annuel_cs:,.0f}}}{{{marge_nette_hl:,.0f}}}=$ "
+    f"- **Volume nécessaire par CS :** "
     f"**{seuil_rentabilite_hl:,.1f} Hls/an**"
 )
 st.markdown(
-    f"- **Performance actuelle de l'agence :** Un CS vend en moyenne "
-    f"**{vol_par_cs_agence:,.1f} Hls/an** dans l'agence {selected_fin_agence} "
-    f"(Volume total agence : {vol_agence:,.0f} Hls pour {cs_agence} CS)."
+    f"- **Performance actuelle :** {vol_par_cs_agence:,.1f} Hls/an/CS "
+    f"({vol_agence:,.0f} Hls / {cs_agence} CS)"
 )
 
 if vol_par_cs_agence >= seuil_rentabilite_hl:
     st.success(
-        f"✅ L'agence {selected_fin_agence} est **rentable** par rapport au coût "
-        f"d'un CS (Couverture du seuil : **{couverture_besoin:.1f}%**)."
+        f"✅ Rentable (Couverture : **{couverture_besoin:.1f}%**)."
     )
 else:
     st.warning(
-        f"⚠️ Attention, la productivité actuelle par CS dans cette agence est en "
-        f"deçà du seuil de rentabilité (Couverture : **{couverture_besoin:.1f}%**)."
+        f"⚠️ Sous le seuil de rentabilité (Couverture : **{couverture_besoin:.1f}%**)."
     )
 
 # ==========================================
-# 9. CARTE INTERACTIVE (AGENCES + CLIENTS GPS)
+# 11. CARTE INTERACTIVE (AGENCES + CLIENTS GPS)
 # ==========================================
 st.markdown("---")
 st.subheader("🗺️ Carte Interactive : Agences & Points de Vente Détaillés")
@@ -524,9 +553,9 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
         horizontal=True,
     )
 
-    # ---------- Mode 1 : Agences uniquement ----------
+    # ---------- Mode 1 : Agences ----------
     if map_mode == "Vue d'ensemble des Agences":
-        fig_map = px.scatter_mapbox(
+        fig_map = scatter_map_auto(
             df,
             lat="Lat", lon="Lon",
             size="Vol_2027_Hls",
@@ -544,16 +573,18 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
             title="Emplacement des Agences (taille ∝ Volume 2027)",
         )
 
-    # ---------- Mode 2 : Tous les points de vente ----------
+    # ---------- Mode 2 : Tous les PDV ----------
     elif map_mode == "Détail des Points de Vente par Type & Commercial":
         if df_clients_gps.empty:
-            st.warning("Aucun point de vente chargé depuis `Coord_GPS.xlsx`.")
+            st.warning(
+                "Aucun point de vente chargé. Uploadez `Coord_GPS.xlsx` "
+                "ou vérifiez sa présence dans le dépôt."
+            )
         else:
             selected_agence_map = st.selectbox(
-                "Filtrer les points de vente par Agence :",
+                "Filtrer par Agence :",
                 ["Toutes les agences"] + df["Agence"].tolist(),
             )
-
             df_map_filtered = df_clients_gps.copy()
             if selected_agence_map != "Toutes les agences":
                 ag_id = str(int(selected_agence_map.split("-")[0])).zfill(2)
@@ -563,13 +594,12 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
 
             if len(df_map_filtered) > 3000 and selected_agence_map == "Toutes les agences":
                 st.info(
-                    "ℹ️ Affichage d'un échantillon de 3 000 points de vente pour "
-                    "fluidifier la carte. Utilisez le filtre d'agence ci-dessus "
-                    "pour cibler une zone."
+                    "ℹ️ Échantillon de 3 000 points affiché. "
+                    "Filtrez par agence pour tout voir."
                 )
                 df_map_filtered = df_map_filtered.sample(3000, random_state=42)
 
-            fig_map = px.scatter_mapbox(
+            fig_map = scatter_map_auto(
                 df_map_filtered,
                 lat="Lat", lon="Lon",
                 color="Description activité",
@@ -583,34 +613,37 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                 center={"lat": -18.79, "lon": 46.85},
                 mapbox_style="open-street-map",
                 height=650,
-                title="Cartographie des Points de Vente (par typologie & commercial)",
+                title="Cartographie des Points de Vente",
             )
             fig_map.update_traces(marker=dict(size=6, opacity=0.75))
-            st.caption(f"📍 {len(df_clients_gps):,} points de vente géolocalisés chargés.")
+            st.caption(f"📍 {len(df_clients_gps):,} points de vente chargés.")
 
-    # ---------- Mode 3 : Zoom Sud (12 clients supplémentaires) ----------
+    # ---------- Mode 3 : Zoom Sud ----------
     else:
         if df_clients_sup.empty:
             st.warning("Aucun client supplémentaire à afficher.")
         else:
-            # Agences + clients sup
-            fig_map = px.scatter_mapbox(
+            # Agences (fond)
+            fig_map = scatter_map_auto(
                 df,
                 lat="Lat", lon="Lon",
                 size="Vol_2027_Hls",
                 color="Région",
                 hover_name="Agence",
-                hover_data={"Vol_2027_Hls": ":,.0f",
-                            "Statut_CS": True, "Statut_MV": True,
-                            "Lat": False, "Lon": False},
-                zoom=9,
+                hover_data={
+                    "Vol_2027_Hls": ":,.0f",
+                    "Statut_CS": True, "Statut_MV": True,
+                    "Lat": False, "Lon": False,
+                },
+                zoom=10,
                 center={"lat": -25.0, "lon": 46.98},
                 mapbox_style="open-street-map",
                 height=650,
-                title="Zoom Sud — Agence 24-Fort-Dauphin & 12 clients supplémentaires",
+                title="Zoom Sud — Agence 24-Fort-Dauphin & 12 clients",
             )
 
-            fig_cli = px.scatter_mapbox(
+            # Clients supplémentaires (points rouges)
+            fig_cli = scatter_map_auto(
                 df_clients_sup,
                 lat="Lat", lon="Lon",
                 hover_name="CS",
@@ -620,7 +653,8 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                 height=650,
             )
             fig_cli.update_traces(
-                marker=dict(size=13, opacity=0.9, line=dict(width=1.5, color="white"))
+                marker=dict(size=14, opacity=0.9,
+                            line=dict(width=2, color="white"))
             )
             for tr in fig_cli.data:
                 fig_map.add_trace(tr)
@@ -636,12 +670,12 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
 
 else:
     st.warning(
-        "⚠️ Fichier `Coord_GPS.xlsx` introuvable ou invalide. Veuillez placer le "
-        "fichier dans le même répertoire que votre script Streamlit."
+        "⚠️ Aucune donnée GPS disponible. Uploadez `Coord_GPS.xlsx` "
+        "pour afficher les points de vente."
     )
 
 # ==========================================
-# 10. RECOMMANDATIONS & EXPORT CSV
+# 12. RECOMMANDATIONS & EXPORT
 # ==========================================
 st.markdown("---")
 st.subheader("📋 Recommandations Détaillées par Agence & Export")
@@ -695,11 +729,10 @@ for _, row in df.iterrows():
     })
 
 df_recos = pd.DataFrame(recos_list)
-
 csv_buffer = io.StringIO()
 df_recos.to_csv(csv_buffer, index=False, encoding="utf-8-sig")
 st.download_button(
-    label="📥 Télécharger le rapport des recommandations (CSV)",
+    label="📥 Télécharger le rapport (CSV)",
     data=csv_buffer.getvalue(),
     file_name="recommandations_commerciales_madagascar.csv",
     mime="text/csv",
@@ -707,103 +740,43 @@ st.download_button(
 
 for _, row in df.iterrows():
     with st.expander(
-        f"🏢 Agence : {row['Agence']} ({row['Région']}) — "
+        f"🏢 {row['Agence']} ({row['Région']}) — "
         f"[{row['Statut_CS']}] | [{row['Statut_MV']}]"
     ):
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Effectifs", f"{row['MV']} MV | {row['Total_CS_Propose']} CS")
-        c2.metric("Ratio Agence", f"{row['Ratio_CS_MV']:.1f} CS / 1 MV")
-        c3.metric("Vol / MV", f"{row['Vol_2027_Par_MV']:,.0f} Hls",
-                  f"vs Nat: {row['Vol_2027_Par_MV'] - nat_vol_mv:+,.0f}")
-        c4.metric("Vol / CS", f"{row['Vol_2027_Par_CS']:,.0f} Hls",
-                  f"vs Nat: {row['Vol_2027_Par_CS'] - nat_vol_cs:+,.0f}")
+        c2.metric("Ratio", f"{row['Ratio_CS_MV']:.1f} CS / 1 MV")
+        c3.metric("Vol / MV", f"{row['Vol_2027_Par_MV']:,.0f} Hls")
+        c4.metric("Vol / CS", f"{row['Vol_2027_Par_CS']:,.0f} Hls")
 
         st.markdown(
             f"- **Volume 2027 :** {row['Vol_2027_Hls']:,.0f} Hls "
-            f"(Évolution: {row['Evol_Vol_Pct']:+.2f}%)"
+            f"({row['Evol_Vol_Pct']:+.2f}%)"
         )
         st.markdown(
-            f"- **Charge PDV :** {row['PDV_Par_CS']:.1f} PDV/CS | "
-            f"**Zones Blanches :** {row['PDV_Estimes_ZB']} PDV "
-            f"({row['Vol_ZB_Inclut_Mois_Hls']} Hls/mois)"
+            f"- **PDV/CS :** {row['PDV_Par_CS']:.1f} | "
+            f"**ZB :** {row['PDV_Estimes_ZB']} PDV"
         )
 
         region_act = row["Région"]
-        agences_reg = df[(df["Région"] == region_act) & (df["Agence"] != row["Agence"])]
+        agences_reg = df[
+            (df["Région"] == region_act) & (df["Agence"] != row["Agence"])
+        ]
         if "Surcharge" in row["Statut_CS"]:
             sc_list = agences_reg[
                 agences_reg["Statut_CS"].str.contains("Sous-charge")
             ]["Agence"].tolist()
             if sc_list:
                 st.warning(
-                    f"⚠️ **Suggestion Régionale :** Surcharge CS détectée. "
-                    f"Possibilité d'effectuer un transfert depuis l'agence "
-                    f"sous-chargée de la même région : **{', '.join(sc_list)}**, "
-                    "ou recrutement local."
+                    f"⚠️ Transfert possible depuis : **{', '.join(sc_list)}**"
                 )
             else:
-                st.warning(
-                    "⚠️ **Suggestion :** Surcharge CS sans sous-charge régionale. "
-                    "**Recrutement local recommandé**."
-                )
+                st.warning("⚠️ Recrutement local recommandé.")
         elif "Sous-charge" in row["Statut_CS"]:
             sur_list = agences_reg[
                 agences_reg["Statut_CS"].str.contains("Surcharge")
             ]["Agence"].tolist()
             if sur_list:
-                st.info(
-                    f"ℹ️ **Suggestion Régionale :** Sous-charge CS identifiée. "
-                    f"Possibilité de détacher du personnel vers l'agence en "
-                    f"surcharge de la même région : **{', '.join(sur_list)}**."
-                )
+                st.info(f"ℹ️ Détachement possible vers : **{', '.join(sur_list)}**")
         else:
-            st.success("✅ **Équilibre opérationnel validé.**")
-
-# ==========================================
-# 11. RÉCAPITULATIF FINAL
-# ==========================================
-st.markdown("---")
-st.subheader("🎯 Récapitulatif Stratégique : Propositions de Recrutement & Transferts")
-
-recap_lignes = []
-for _, row in df.iterrows():
-    region_actuelle = row["Région"]
-    agences_meme_region = df[
-        (df["Région"] == region_actuelle) & (df["Agence"] != row["Agence"])
-    ]
-
-    action = "Maintien de l'effectif"
-    if "Surcharge CS" in row["Statut_CS"]:
-        sous_charges = agences_meme_region[
-            agences_meme_region["Statut_CS"].str.contains("Sous-charge")
-        ]
-        if not sous_charges.empty:
-            noms_sc = ", ".join(sous_charges["Agence"].tolist())
-            action = f"Transfert depuis [{noms_sc}] (même région) ou Recrutement Local"
-        else:
-            action = "Recrutement Local CS (Pas de source de transfert régional)"
-    elif "Sous-charge CS" in row["Statut_CS"]:
-        surcharges = agences_meme_region[
-            agences_meme_region["Statut_CS"].str.contains("Surcharge")
-        ]
-        if not surcharges.empty:
-            noms_sur = ", ".join(surcharges["Agence"].tolist())
-            action = f"Détachement / Transfert vers [{noms_sur}] (même région)"
-        else:
-            action = "Sous-charge locale (Maintien ou redéploiement zones blanches)"
-    elif "Surcharge MV" in row["Statut_MV"]:
-        action = "Renfort d'Encadrement MV"
-
-    recap_lignes.append({
-        "Région": row["Région"],
-        "Agence": row["Agence"],
-        "Volume 2027 (Hls)": f"{row['Vol_2027_Hls']:,.0f}",
-        "PDV Totaux": f"{row['PDV_Total_Ajuste']:,.0f}",
-        "Charge CS (PDV/CS)": f"{row['PDV_Par_CS']:.1f}",
-        "Statut CS": row["Statut_CS"],
-        "Statut MV": row["Statut_MV"],
-        "Action Proposée": action,
-    })
-
-df_recap_final = pd.DataFrame(recap_lignes)
-st.table(df_recap_final)
+            st.success("✅ Équilibre opérationnel validé.")
