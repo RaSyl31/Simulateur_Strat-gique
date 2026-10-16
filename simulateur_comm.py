@@ -622,7 +622,7 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
         "Mode d'affichage de la carte :",
         [
             "Vue d'ensemble des Agences",
-            "Détail des Points de Vente par Type & Commercial",
+            "Détail des Points de Vente par Type & Commercial"
         ],
         horizontal=True,
     )
