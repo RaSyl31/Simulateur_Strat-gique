@@ -1,4 +1,5 @@
 import io
+import os
 import re
 import numpy as np
 import pandas as pd
@@ -93,7 +94,7 @@ df_raw = load_base_data()
 # 2. PARSING DMS (tolérant)
 # ==========================================
 def _dms_to_dec_single(txt):
-    """Convertit une chaîne DMS en (lat, lon). Tolérant et robuste."""
+    """Convertit une chaîne DMS en (lat, lon). Tolère ? ° , et ordre inversé."""
     if not isinstance(txt, str):
         return None, None
     s = (txt.replace("?", "°")
@@ -117,67 +118,28 @@ def _dms_to_dec_single(txt):
 
 
 # ==========================================
-# 3. CHARGEMENT DU FICHIER GPS (upload systématique)
+# 3. CHARGEMENT DU FICHIER GPS CLIENTS
 # ==========================================
-def _find_gps_column(columns):
-    """Détecte la colonne GPS parmi les alias courants."""
-    alias = (
-        "gps", "coordonnees", "coordonnées", "coordonnee", "coordonnée",
-        "position", "localisation", "coordonnees_gps", "point_gps",
-        "gps_coord", "coord",
-    )
-    for col in columns:
-        if str(col).strip().lower() in alias:
-            return col
-    return None
-
-
 @st.cache_data
-def load_gps_data(_uploaded_file):
-    """
-    Charge le fichier GPS uploadé.
-    Détecte automatiquement :
-      - la feuille contenant une colonne GPS
-      - la colonne GPS (parmi les alias)
-    """
-    if _uploaded_file is None:
-        return pd.DataFrame()
+def load_gps_data(_uploaded_file=None):
+    """Charge Coord_GPS.xlsx (chemin absolu + fallback upload)."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    default_path = os.path.join(base_dir, "Coord_GPS.xlsx")
 
-    # --- Ouverture du classeur ---
-    try:
-        xls = pd.ExcelFile(_uploaded_file)
-        sheet_names = xls.sheet_names
-    except Exception as e:
-        st.error(f"❌ Impossible d'ouvrir le classeur : {e}")
-        return pd.DataFrame()
-
-    # --- Choix de la feuille : celle qui a une colonne GPS ---
-    sheet_to_use = None
-    for sh in sheet_names:
+    df_gps = None
+    if os.path.exists(default_path):
         try:
-            tmp = pd.read_excel(_uploaded_file, sheet_name=sh, nrows=5)
-            tmp.columns = [str(c).strip() for c in tmp.columns]
-            if _find_gps_column(tmp.columns) is not None:
-                sheet_to_use = sh
-                break
-        except Exception:
-            continue
-
-    if sheet_to_use is None:
-        for c in ["Feuil1", "Feuille1", "Sheet1", "GPS", "Coordonnees",
-                  "Coordonnées", "Data", "Clients"]:
-            if c in sheet_names:
-                sheet_to_use = c
-                break
-
-    if sheet_to_use is None:
-        sheet_to_use = sheet_names[0]
-
-    # --- Lecture complète ---
-    try:
-        df_gps = pd.read_excel(_uploaded_file, sheet_name=sheet_to_use)
-    except Exception as e:
-        st.error(f"❌ Erreur de lecture de la feuille `{sheet_to_use}` : {e}")
+            df_gps = pd.read_excel(default_path, sheet_name="Feuil1")
+        except Exception as e:
+            st.error(f"Erreur de lecture `{default_path}` : {e}")
+            return pd.DataFrame()
+    elif _uploaded_file is not None:
+        try:
+            df_gps = pd.read_excel(_uploaded_file, sheet_name="Feuil1")
+        except Exception as e:
+            st.error(f"Erreur de lecture du fichier uploadé : {e}")
+            return pd.DataFrame()
+    else:
         return pd.DataFrame()
 
     df_gps.columns = [str(c).strip() for c in df_gps.columns]
@@ -186,43 +148,65 @@ def load_gps_data(_uploaded_file):
     if not df_gps.empty and str(df_gps.iloc[0].get("Ag", "")).strip() == "Ag":
         df_gps = df_gps.iloc[1:].reset_index(drop=True)
 
-    # --- Détection colonne GPS ---
-    gps_col = _find_gps_column(df_gps.columns)
-    if gps_col is None:
-        st.error(
-            f"❌ Aucune colonne GPS trouvée. Colonnes disponibles : "
-            f"{list(df_gps.columns)}"
-        )
+    if "GPS" not in df_gps.columns:
+        st.error("La colonne `GPS` est absente du fichier Excel.")
         return pd.DataFrame()
 
-    # --- Parsing DMS ---
-    coords = df_gps[gps_col].apply(_dms_to_dec_single)
+    coords = df_gps["GPS"].apply(_dms_to_dec_single)
     df_gps["Lat"] = [c[0] for c in coords]
     df_gps["Lon"] = [c[1] for c in coords]
 
-    # Filtre Madagascar
     df_gps = df_gps.dropna(subset=["Lat", "Lon"])
     df_gps = df_gps[
         df_gps["Lat"].between(-26, -11) & df_gps["Lon"].between(42, 51)
     ]
-
-    st.success(
-        f"✅ Fichier GPS chargé — feuille `{sheet_to_use}` — "
-        f"{len(df_gps):,} points valides."
-    )
     return df_gps.reset_index(drop=True)
 
 
-# --- Upload systématique du fichier GPS ---
-_uploaded = st.file_uploader(
-    "Charger le fichier Excel des coordonnées GPS",
-    type=["xlsx", "xls"],
-)
-df_clients_gps = load_gps_data(_uploaded)
+# Upload manuel si fichier absent côté serveur
+_base_dir = os.path.dirname(os.path.abspath(__file__))
+if not os.path.exists(os.path.join(_base_dir, "Coord_GPS.xlsx")):
+    st.warning(
+        "📂 Le fichier `Coord_GPS.xlsx` n'est pas présent sur le serveur. "
+        "Veuillez l'uploader ci-dessous pour afficher les points de vente."
+    )
+    _uploaded = st.file_uploader("Charger Coord_GPS.xlsx", type=["xlsx"])
+    df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
+else:
+    df_clients_gps = load_gps_data()
 
 
 # ==========================================
-# 4. SIDEBAR — PARAMÈTRES
+# 4. CLIENTS SUPPLÉMENTAIRES (SUD — FORT-DAUPHIN / ANDROY)
+# ==========================================
+@st.cache_data
+def load_clients_sup():
+    data = [
+        ("Gargote",                        "040328-ANDRITIANA RAKOTOHARINI", "25°1'36.53\"S 46°58'25.24\"E"),
+        ("EPIBAR",                         "040328-ANDRITIANA RAKOTOHARINI", "25°2'0.49\"S 46°58'58.52\"E"),
+        ("Epicerie PPN",                   "240170-ANDRIAMIHANTA VELOSONY",  "25°0'14.82\"S 46°59'3.95\"E"),
+        ("EPIBAR",                         "240170-ANDRIAMIHANTA VELOSONY",  "25°1'15.56\"S 46°59'9.56\"E"),
+        ("Restaurant standard",            "040328-ANDRITIANA RAKOTOHARINI", "25°1'49.55\"S 46°57'52.50\"E"),
+        ("Gargote",                        "040328-ANDRITIANA RAKOTOHARINI", "25°1'46.89\"S 46°59'51.40\"E"),
+        ("Kiosque - trolley-PDV glaciere", "240170-ANDRIAMIHANTA VELOSONY",  "25°1'26.13\"S 46°59'4.59\"E"),
+        ("EPIBAR",                         "240170-ANDRIAMIHANTA VELOSONY",  "25°1'58.30\"S 46°59'0.20\"E"),
+        ("Epicerie PPN",                   "040328-ANDRITIANA RAKOTOHARINI", "25°1'38.64\"S 46°58'25.27\"E"),
+        ("Kiosque - trolley-PDV glaciere", "040328-ANDRITIANA RAKOTOHARINI", "25°1'37.71\"S 46°58'23.85\"E"),
+        ("Gargote",                        "040328-ANDRITIANA RAKOTOHARINI", "25°1'35.51\"S 46°58'25.52\"E"),
+        ("EPIBAR",                         "040328-ANDRITIANA RAKOTOHARINI", "25°1'34.52\"S 46°59'11.59\"E"),
+    ]
+    df_cli = pd.DataFrame(data, columns=["Activite", "CS", "GPS_raw"])
+    coords = df_cli["GPS_raw"].apply(_dms_to_dec_single)
+    df_cli["Lat"] = [c[0] for c in coords]
+    df_cli["Lon"] = [c[1] for c in coords]
+    return df_cli.dropna(subset=["Lat", "Lon"])
+
+
+df_clients_sup = load_clients_sup()
+
+
+# ==========================================
+# 5. SIDEBAR — PARAMÈTRES
 # ==========================================
 st.sidebar.header("⚙️ Paramètres & Seuils d'Évaluation")
 
@@ -271,7 +255,7 @@ df.loc[df["Agence"] == selected_agence_zb, "PDV_Estimes_ZB"] = sim_zb_pdv
 
 
 # ==========================================
-# 5. CALCULS DYNAMIQUES
+# 6. CALCULS DYNAMIQUES
 # ==========================================
 df["Total_CS_Propose"] = df["CS_Actuels"] + df["Ajustement_CS_DRV"]
 df["Evol_Vol_Abs"] = df["Vol_2027_Hls"] - df["Vol_2026_Hls"]
@@ -332,7 +316,7 @@ def color_status_cells(val):
 
 
 # ==========================================
-# 6. TABLEAU RÉCAPITULATIF
+# 7. TABLEAU RÉCAPITULATIF
 # ==========================================
 st.subheader("📊 Tableau Récapitulatif : Volumes 2026 vs 2027 & Effectifs")
 st.markdown(
@@ -383,7 +367,7 @@ st.dataframe(
 )
 
 # ==========================================
-# 7. SIMULATEUR AVANT / APRÈS
+# 8. SIMULATEUR AVANT / APRÈS
 # ==========================================
 st.markdown("---")
 st.markdown(
@@ -468,7 +452,7 @@ st.dataframe(
 st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# 8. GRAPHIQUES
+# 9. GRAPHIQUES
 # ==========================================
 st.markdown("---")
 st.subheader("📈 Visualisation Interactive : Agence vs Moyenne Nationale")
@@ -499,7 +483,7 @@ with g_cols[1]:
     st.plotly_chart(fig_pdv, use_container_width=True)
 
 # ==========================================
-# 9. SIMULATION FINANCIÈRE
+# 10. SIMULATION FINANCIÈRE
 # ==========================================
 st.markdown("---")
 st.subheader("💰 Simulation Financière & Point Mort (Break-even) par Agence")
@@ -557,17 +541,18 @@ else:
     )
 
 # ==========================================
-# 10. CARTE INTERACTIVE (AGENCES + CLIENTS GPS)
+# 11. CARTE INTERACTIVE (AGENCES + CLIENTS GPS)
 # ==========================================
 st.markdown("---")
 st.subheader("🗺️ Carte Interactive : Agences & Points de Vente Détaillés")
 
-if not df_clients_gps.empty:
+if not df_clients_gps.empty or not df_clients_sup.empty:
     map_mode = st.radio(
         "Mode d'affichage de la carte :",
         [
             "Vue d'ensemble des Agences",
             "Détail des Points de Vente par Type & Commercial",
+            "Zoom Sud — Clients Fort-Dauphin / Androy",
         ],
         horizontal=True,
     )
@@ -593,15 +578,13 @@ if not df_clients_gps.empty:
         )
 
     # ---------- Mode 2 : Tous les PDV ----------
-    else:
-        ag_col = None
-        for c in df_clients_gps.columns:
-            if str(c).strip().lower() in ("ag", "agence", "code_agence",
-                                          "code agence", "id_agence"):
-                ag_col = c
-                break
-
-        if ag_col is not None:
+    elif map_mode == "Détail des Points de Vente par Type & Commercial":
+        if df_clients_gps.empty:
+            st.warning(
+                "Aucun point de vente chargé. Uploadez `Coord_GPS.xlsx` "
+                "ou vérifiez sa présence dans le dépôt."
+            )
+        else:
             selected_agence_map = st.selectbox(
                 "Filtrer par Agence :",
                 ["Toutes les agences"] + df["Agence"].tolist(),
@@ -610,60 +593,93 @@ if not df_clients_gps.empty:
             if selected_agence_map != "Toutes les agences":
                 ag_id = str(int(selected_agence_map.split("-")[0])).zfill(2)
                 df_map_filtered = df_map_filtered[
-                    df_map_filtered[ag_col].astype(str).str.zfill(2) == ag_id
+                    df_map_filtered["Ag"].astype(str).str.zfill(2) == ag_id
                 ]
-        else:
-            st.info(
-                "ℹ️ Colonne `Ag` absente du fichier — affichage de tous les "
-                "points de vente."
+
+            if len(df_map_filtered) > 3000 and selected_agence_map == "Toutes les agences":
+                st.info(
+                    "ℹ️ Échantillon de 3 000 points affiché. "
+                    "Filtrez par agence pour tout voir."
+                )
+                df_map_filtered = df_map_filtered.sample(3000, random_state=42)
+
+            fig_map = scatter_map_auto(
+                df_map_filtered,
+                lat="Lat", lon="Lon",
+                color="Description activité",
+                hover_name="Nom client",
+                hover_data={
+                    "Nom CS2": True,
+                    "Description activité": True,
+                    "Lat": False, "Lon": False,
+                },
+                zoom=5.5,
+                center={"lat": -18.79, "lon": 46.85},
+                mapbox_style="open-street-map",
+                height=650,
+                title="Cartographie des Points de Vente",
             )
-            df_map_filtered = df_clients_gps.copy()
+            fig_map.update_traces(marker=dict(size=6, opacity=0.75))
+            st.caption(f"📍 {len(df_clients_gps):,} points de vente chargés.")
 
-        if len(df_map_filtered) > 3000:
-            st.info("ℹ️ Échantillon de 3 000 points affiché pour la fluidité.")
-            df_map_filtered = df_map_filtered.sample(3000, random_state=42)
+    # ---------- Mode 3 : Zoom Sud ----------
+    else:
+        if df_clients_sup.empty:
+            st.warning("Aucun client supplémentaire à afficher.")
+        else:
+            # Agences (fond)
+            fig_map = scatter_map_auto(
+                df,
+                lat="Lat", lon="Lon",
+                size="Vol_2027_Hls",
+                color="Région",
+                hover_name="Agence",
+                hover_data={
+                    "Vol_2027_Hls": ":,.0f",
+                    "Statut_CS": True, "Statut_MV": True,
+                    "Lat": False, "Lon": False,
+                },
+                zoom=10,
+                center={"lat": -25.0, "lon": 46.98},
+                mapbox_style="open-street-map",
+                height=650,
+                title="Zoom Sud — Agence 24-Fort-Dauphin & 12 clients",
+            )
 
-        hover_cols = {}
-        for c in ["Nom CS2", "Nom client", "Description activité",
-                  "Activite", "CS"]:
-            if c in df_map_filtered.columns:
-                hover_cols[c] = True
-        hover_cols["Lat"] = False
-        hover_cols["Lon"] = False
+            # Clients supplémentaires (points rouges)
+            fig_cli = scatter_map_auto(
+                df_clients_sup,
+                lat="Lat", lon="Lon",
+                hover_name="CS",
+                hover_data={"Activite": True,
+                            "Lat": False, "Lon": False},
+                color_discrete_sequence=["#e63946"],
+                height=650,
+            )
+            fig_cli.update_traces(
+                marker=dict(size=14, opacity=0.9,
+                            line=dict(width=2, color="white"))
+            )
+            for tr in fig_cli.data:
+                fig_map.add_trace(tr)
 
-        color_col = None
-        for c in ["Description activité", "Activite", "Description activite"]:
-            if c in df_map_filtered.columns:
-                color_col = c
-                break
-
-        kwargs = dict(
-            lat="Lat", lon="Lon",
-            hover_name=("Nom client" if "Nom client" in df_map_filtered.columns else None),
-            hover_data=hover_cols,
-            zoom=5.5,
-            center={"lat": -18.79, "lon": 46.85},
-            mapbox_style="open-street-map",
-            height=650,
-            title="Cartographie des Points de Vente",
-        )
-        if color_col is not None:
-            kwargs["color"] = color_col
-
-        fig_map = scatter_map_auto(df_map_filtered, **kwargs)
-        fig_map.update_traces(marker=dict(size=6, opacity=0.75))
-        st.caption(f"📍 {len(df_clients_gps):,} points de vente chargés.")
+            fig_map.update_layout(
+                mapbox=dict(center={"lat": -25.0, "lon": 46.98}, zoom=11),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02,
+                            xanchor="right", x=1, title=""),
+                margin=dict(l=0, r=0, t=40, b=0),
+            )
 
     st.plotly_chart(fig_map, use_container_width=True)
 
 else:
-    st.info(
-        "📂 Veuillez uploader le fichier Excel des coordonnées GPS ci-dessus "
+    st.warning(
+        "⚠️ Aucune donnée GPS disponible. Uploadez `Coord_GPS.xlsx` "
         "pour afficher les points de vente."
     )
 
 # ==========================================
-# 11. RECOMMANDATIONS & EXPORT
+# 12. RECOMMANDATIONS & EXPORT
 # ==========================================
 st.markdown("---")
 st.subheader("📋 Recommandations Détaillées par Agence & Export")
@@ -789,7 +805,7 @@ for _, row in df.iterrows():
             st.success("✅ **Équilibre opérationnel validé.**")
 
 # ==========================================
-# 12. RÉCAPITULATIF FINAL
+# 13. RÉCAPITULATIF FINAL
 # ==========================================
 st.markdown("---")
 st.subheader("🎯 Récapitulatif Stratégique : Propositions de Recrutement & Transferts")
