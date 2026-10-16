@@ -685,7 +685,11 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                 )
                 df_map_filtered = df_clients_gps.copy()
 
-            # ⚠️ SUPPRESSION DE L'ÉCHANTILLONNAGE : toutes les lignes affichées
+            if len(df_map_filtered) > 3000:
+                st.info(
+                    "ℹ️ Échantillon de 3 000 points affiché pour la fluidité."
+                )
+                df_map_filtered = df_map_filtered.sample(3000, random_state=42)
 
             # Colonnes de hover disponibles
             hover_cols = {}
@@ -702,7 +706,7 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                     color_col = c
                     break
 
-            # --- Couleur NOIR TRÈS NOIR pour "ZONE BLANCHE" ---
+            # --- AJOUT : couleur NOIR TRÈS NOIR pour "ZONE BLANCHE" ---
             color_discrete_map = None
             if color_col is not None:
                 unique_vals = df_map_filtered[color_col].astype(str).unique()
