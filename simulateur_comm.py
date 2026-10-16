@@ -685,11 +685,7 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                 )
                 df_map_filtered = df_clients_gps.copy()
 
-            if len(df_map_filtered) > 3000:
-                st.info(
-                    "ℹ️ Échantillon de 3 000 points affiché pour la fluidité."
-                )
-                df_map_filtered = df_map_filtered.sample(3000, random_state=42)
+            # ✅ Toutes les lignes sont affichées (plus d'échantillonnage)
 
             # Colonnes de hover disponibles
             hover_cols = {}
