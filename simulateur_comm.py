@@ -685,11 +685,7 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                 )
                 df_map_filtered = df_clients_gps.copy()
 
-            if len(df_map_filtered) > 3000:
-                st.info(
-                    "ℹ️ Échantillon de 3 000 points affiché pour la fluidité."
-                )
-                df_map_filtered = df_map_filtered.sample(3000, random_state=42)
+            # ✅ Toutes les lignes sont affichées (plus d'échantillonnage)
 
             # Colonnes de hover disponibles
             hover_cols = {}
@@ -706,6 +702,22 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                     color_col = c
                     break
 
+            # --- AJOUT : couleur NOIR TRÈS NOIR pour "ZONE BLANCHE" ---
+            color_discrete_map = None
+            if color_col is not None:
+                unique_vals = df_map_filtered[color_col].astype(str).unique()
+                default_palette = px.colors.qualitative.Plotly
+                color_discrete_map = {}
+                idx = 0
+                for val in unique_vals:
+                    if str(val).strip().upper() == "ZONE BLANCHE":
+                        color_discrete_map[val] = "#000000"  # noir très noir
+                    else:
+                        color_discrete_map[val] = default_palette[
+                            idx % len(default_palette)
+                        ]
+                        idx += 1
+
             kwargs = dict(
                 lat="Lat", lon="Lon",
                 hover_name="Nom client" if "Nom client" in df_map_filtered.columns else None,
@@ -718,6 +730,8 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
             )
             if color_col is not None:
                 kwargs["color"] = color_col
+                if color_discrete_map is not None:
+                    kwargs["color_discrete_map"] = color_discrete_map
 
             fig_map = scatter_map_auto(df_map_filtered, **kwargs)
             fig_map.update_traces(marker=dict(size=6, opacity=0.75))
