@@ -25,9 +25,9 @@ st.markdown(
 _HAS_SCATTER_MAPBOX = hasattr(px, "scatter_mapbox")
 
 
-def scatter_map_auto(df, **kwargs):
-    """Wrapper Plotly 5 (scatter_mapbox) / Plotly 6 (scatter_map)."""
-    if _HAS_SCATTER_MAPBOX:
+def scattermapauto(df, **kwargs):
+    """Wrapper Plotly 5 (scattermapbox) / Plotly 6 (scattermap)."""
+    if HASSCATTER_MAPBOX:
         return px.scatter_mapbox(df, **kwargs)
     if "mapbox_style" in kwargs:
         kwargs["map_style"] = kwargs.pop("mapbox_style")
@@ -623,7 +623,6 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
         [
             "Vue d'ensemble des Agences",
             "Détail des Points de Vente par Type & Commercial",
-            "Zoom Sud — Clients Fort-Dauphin / Androy",
         ],
         horizontal=True,
     )
