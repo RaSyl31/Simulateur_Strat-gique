@@ -99,7 +99,6 @@ def _dms_to_dec_single(txt):
     - séparateurs ? ou °
     - virgules
     - ordre Lat/Lon inversé (détection par N/S vs E/W)
-    - secondes manquantes
     """
     if not isinstance(txt, str):
         return None, None
@@ -166,7 +165,7 @@ def load_gps_data(_uploaded_file=None):
         st.error(f"❌ Impossible d'ouvrir le classeur : {e}")
         return pd.DataFrame()
 
-    # --- Choix de la feuille : on cherche celle qui a une colonne GPS ---
+    # --- Choix de la feuille : celle qui a une colonne GPS ---
     sheet_to_use = None
     for sh in sheet_names:
         try:
@@ -190,7 +189,7 @@ def load_gps_data(_uploaded_file=None):
     if sheet_to_use is None:
         sheet_to_use = sheet_names[0]
 
-    # --- Lecture complète de la feuille choisie ---
+    # --- Lecture complète ---
     try:
         df_gps = pd.read_excel(source, sheet_name=sheet_to_use)
     except Exception as e:
@@ -251,36 +250,7 @@ else:
 
 
 # ==========================================
-# 4. CLIENTS SUPPLÉMENTAIRES (SUD — FORT-DAUPHIN / ANDROY)
-# ==========================================
-@st.cache_data
-def load_clients_sup():
-    data = [
-        ("Gargote",                        "040328-ANDRITIANA RAKOTOHARINI", "25°1'36.53\"S 46°58'25.24\"E"),
-        ("EPIBAR",                         "040328-ANDRITIANA RAKOTOHARINI", "25°2'0.49\"S 46°58'58.52\"E"),
-        ("Epicerie PPN",                   "240170-ANDRIAMIHANTA VELOSONY",  "25°0'14.82\"S 46°59'3.95\"E"),
-        ("EPIBAR",                         "240170-ANDRIAMIHANTA VELOSONY",  "25°1'15.56\"S 46°59'9.56\"E"),
-        ("Restaurant standard",            "040328-ANDRITIANA RAKOTOHARINI", "25°1'49.55\"S 46°57'52.50\"E"),
-        ("Gargote",                        "040328-ANDRITIANA RAKOTOHARINI", "25°1'46.89\"S 46°59'51.40\"E"),
-        ("Kiosque - trolley-PDV glaciere", "240170-ANDRIAMIHANTA VELOSONY",  "25°1'26.13\"S 46°59'4.59\"E"),
-        ("EPIBAR",                         "240170-ANDRIAMIHANTA VELOSONY",  "25°1'58.30\"S 46°59'0.20\"E"),
-        ("Epicerie PPN",                   "040328-ANDRITIANA RAKOTOHARINI", "25°1'38.64\"S 46°58'25.27\"E"),
-        ("Kiosque - trolley-PDV glaciere", "040328-ANDRITIANA RAKOTOHARINI", "25°1'37.71\"S 46°58'23.85\"E"),
-        ("Gargote",                        "040328-ANDRITIANA RAKOTOHARINI", "25°1'35.51\"S 46°58'25.52\"E"),
-        ("EPIBAR",                         "040328-ANDRITIANA RAKOTOHARINI", "25°1'34.52\"S 46°59'11.59\"E"),
-    ]
-    df_cli = pd.DataFrame(data, columns=["Activite", "CS", "GPS_raw"])
-    coords = df_cli["GPS_raw"].apply(_dms_to_dec_single)
-    df_cli["Lat"] = [c[0] for c in coords]
-    df_cli["Lon"] = [c[1] for c in coords]
-    return df_cli.dropna(subset=["Lat", "Lon"])
-
-
-df_clients_sup = load_clients_sup()
-
-
-# ==========================================
-# 5. SIDEBAR — PARAMÈTRES
+# 4. SIDEBAR — PARAMÈTRES
 # ==========================================
 st.sidebar.header("⚙️ Paramètres & Seuils d'Évaluation")
 
@@ -329,7 +299,7 @@ df.loc[df["Agence"] == selected_agence_zb, "PDV_Estimes_ZB"] = sim_zb_pdv
 
 
 # ==========================================
-# 6. CALCULS DYNAMIQUES
+# 5. CALCULS DYNAMIQUES
 # ==========================================
 df["Total_CS_Propose"] = df["CS_Actuels"] + df["Ajustement_CS_DRV"]
 df["Evol_Vol_Abs"] = df["Vol_2027_Hls"] - df["Vol_2026_Hls"]
@@ -390,7 +360,7 @@ def color_status_cells(val):
 
 
 # ==========================================
-# 7. TABLEAU RÉCAPITULATIF
+# 6. TABLEAU RÉCAPITULATIF
 # ==========================================
 st.subheader("📊 Tableau Récapitulatif : Volumes 2026 vs 2027 & Effectifs")
 st.markdown(
@@ -441,7 +411,7 @@ st.dataframe(
 )
 
 # ==========================================
-# 8. SIMULATEUR AVANT / APRÈS
+# 7. SIMULATEUR AVANT / APRÈS
 # ==========================================
 st.markdown("---")
 st.markdown(
@@ -526,7 +496,7 @@ st.dataframe(
 st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# 9. GRAPHIQUES
+# 8. GRAPHIQUES
 # ==========================================
 st.markdown("---")
 st.subheader("📈 Visualisation Interactive : Agence vs Moyenne Nationale")
@@ -557,7 +527,7 @@ with g_cols[1]:
     st.plotly_chart(fig_pdv, use_container_width=True)
 
 # ==========================================
-# 10. SIMULATION FINANCIÈRE
+# 9. SIMULATION FINANCIÈRE
 # ==========================================
 st.markdown("---")
 st.subheader("💰 Simulation Financière & Point Mort (Break-even) par Agence")
@@ -615,18 +585,17 @@ else:
     )
 
 # ==========================================
-# 11. CARTE INTERACTIVE (AGENCES + CLIENTS GPS)
+# 10. CARTE INTERACTIVE (AGENCES + CLIENTS GPS)
 # ==========================================
 st.markdown("---")
 st.subheader("🗺️ Carte Interactive : Agences & Points de Vente Détaillés")
 
-if not df_clients_gps.empty or not df_clients_sup.empty:
+if not df_clients_gps.empty:
     map_mode = st.radio(
         "Mode d'affichage de la carte :",
         [
             "Vue d'ensemble des Agences",
             "Détail des Points de Vente par Type & Commercial",
-            "Zoom Sud — Clients Fort-Dauphin / Androy",
         ],
         horizontal=True,
     )
@@ -652,122 +621,70 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
         )
 
     # ---------- Mode 2 : Tous les PDV ----------
-    elif map_mode == "Détail des Points de Vente par Type & Commercial":
-        if df_clients_gps.empty:
-            st.warning(
-                "Aucun point de vente chargé. Uploadez le fichier Excel "
-                "ou vérifiez sa présence dans le dépôt."
-            )
-        else:
-            # Détection de la colonne agence dans le fichier GPS
-            ag_col = None
-            for c in df_clients_gps.columns:
-                if str(c).strip().lower() in ("ag", "agence", "code_agence",
-                                              "code agence", "id_agence"):
-                    ag_col = c
-                    break
-
-            if ag_col is not None:
-                selected_agence_map = st.selectbox(
-                    "Filtrer par Agence :",
-                    ["Toutes les agences"] + df["Agence"].tolist(),
-                )
-                df_map_filtered = df_clients_gps.copy()
-                if selected_agence_map != "Toutes les agences":
-                    ag_id = str(int(selected_agence_map.split("-")[0])).zfill(2)
-                    df_map_filtered = df_map_filtered[
-                        df_map_filtered[ag_col].astype(str).str.zfill(2) == ag_id
-                    ]
-            else:
-                st.info(
-                    "ℹ️ Colonne `Ag` absente du fichier — affichage de tous les "
-                    "points de vente."
-                )
-                df_map_filtered = df_clients_gps.copy()
-
-            if len(df_map_filtered) > 3000:
-                st.info(
-                    "ℹ️ Échantillon de 3 000 points affiché pour la fluidité."
-                )
-                df_map_filtered = df_map_filtered.sample(3000, random_state=42)
-
-            # Colonnes de hover disponibles
-            hover_cols = {}
-            for c in ["Nom CS2", "Nom client", "Description activité",
-                      "Activite", "CS"]:
-                if c in df_map_filtered.columns:
-                    hover_cols[c] = True
-            hover_cols["Lat"] = False
-            hover_cols["Lon"] = False
-
-            color_col = None
-            for c in ["Description activité", "Activite", "Description activite"]:
-                if c in df_map_filtered.columns:
-                    color_col = c
-                    break
-
-            kwargs = dict(
-                lat="Lat", lon="Lon",
-                hover_name="Nom client" if "Nom client" in df_map_filtered.columns else None,
-                hover_data=hover_cols,
-                zoom=5.5,
-                center={"lat": -18.79, "lon": 46.85},
-                mapbox_style="open-street-map",
-                height=650,
-                title="Cartographie des Points de Vente",
-            )
-            if color_col is not None:
-                kwargs["color"] = color_col
-
-            fig_map = scatter_map_auto(df_map_filtered, **kwargs)
-            fig_map.update_traces(marker=dict(size=6, opacity=0.75))
-            st.caption(f"📍 {len(df_clients_gps):,} points de vente chargés.")
-
-    # ---------- Mode 3 : Zoom Sud ----------
     else:
-        if df_clients_sup.empty:
-            st.warning("Aucun client supplémentaire à afficher.")
+        # Détection de la colonne agence dans le fichier GPS
+        ag_col = None
+        for c in df_clients_gps.columns:
+            if str(c).strip().lower() in ("ag", "agence", "code_agence",
+                                          "code agence", "id_agence"):
+                ag_col = c
+                break
+
+        if ag_col is not None:
+            selected_agence_map = st.selectbox(
+                "Filtrer par Agence :",
+                ["Toutes les agences"] + df["Agence"].tolist(),
+            )
+            df_map_filtered = df_clients_gps.copy()
+            if selected_agence_map != "Toutes les agences":
+                ag_id = str(int(selected_agence_map.split("-")[0])).zfill(2)
+                df_map_filtered = df_map_filtered[
+                    df_map_filtered[ag_col].astype(str).str.zfill(2) == ag_id
+                ]
         else:
-            fig_map = scatter_map_auto(
-                df,
-                lat="Lat", lon="Lon",
-                size="Vol_2027_Hls",
-                color="Région",
-                hover_name="Agence",
-                hover_data={
-                    "Vol_2027_Hls": ":,.0f",
-                    "Statut_CS": True, "Statut_MV": True,
-                    "Lat": False, "Lon": False,
-                },
-                zoom=10,
-                center={"lat": -25.0, "lon": 46.98},
-                mapbox_style="open-street-map",
-                height=650,
-                title="Zoom Sud — Agence 24-Fort-Dauphin & 12 clients",
+            st.info(
+                "ℹ️ Colonne `Ag` absente du fichier — affichage de tous les "
+                "points de vente."
             )
+            df_map_filtered = df_clients_gps.copy()
 
-            fig_cli = scatter_map_auto(
-                df_clients_sup,
-                lat="Lat", lon="Lon",
-                hover_name="CS",
-                hover_data={"Activite": True,
-                            "Lat": False, "Lon": False},
-                color_discrete_sequence=["#e63946"],
-                height=650,
+        if len(df_map_filtered) > 3000:
+            st.info(
+                "ℹ️ Échantillon de 3 000 points affiché pour la fluidité."
             )
-            fig_cli.update_traces(
-                marker=dict(size=14, opacity=0.9,
-                            line=dict(width=2, color="white"))
-            )
-            for tr in fig_cli.data:
-                fig_map.add_trace(tr)
+            df_map_filtered = df_map_filtered.sample(3000, random_state=42)
 
-            fig_map.update_layout(
-                mapbox=dict(center={"lat": -25.0, "lon": 46.98}, zoom=11),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02,
-                            xanchor="right", x=1, title=""),
-                margin=dict(l=0, r=0, t=40, b=0),
-            )
+        # Colonnes de hover disponibles
+        hover_cols = {}
+        for c in ["Nom CS2", "Nom client", "Description activité",
+                  "Activite", "CS"]:
+            if c in df_map_filtered.columns:
+                hover_cols[c] = True
+        hover_cols["Lat"] = False
+        hover_cols["Lon"] = False
+
+        color_col = None
+        for c in ["Description activité", "Activite", "Description activite"]:
+            if c in df_map_filtered.columns:
+                color_col = c
+                break
+
+        kwargs = dict(
+            lat="Lat", lon="Lon",
+            hover_name=("Nom client" if "Nom client" in df_map_filtered.columns else None),
+            hover_data=hover_cols,
+            zoom=5.5,
+            center={"lat": -18.79, "lon": 46.85},
+            mapbox_style="open-street-map",
+            height=650,
+            title="Cartographie des Points de Vente",
+        )
+        if color_col is not None:
+            kwargs["color"] = color_col
+
+        fig_map = scatter_map_auto(df_map_filtered, **kwargs)
+        fig_map.update_traces(marker=dict(size=6, opacity=0.75))
+        st.caption(f"📍 {len(df_clients_gps):,} points de vente chargés.")
 
     st.plotly_chart(fig_map, use_container_width=True)
 
@@ -778,7 +695,7 @@ else:
     )
 
 # ==========================================
-# 12. RECOMMANDATIONS & EXPORT
+# 11. RECOMMANDATIONS & EXPORT
 # ==========================================
 st.markdown("---")
 st.subheader("📋 Recommandations Détaillées par Agence & Export")
@@ -904,7 +821,7 @@ for _, row in df.iterrows():
             st.success("✅ **Équilibre opérationnel validé.**")
 
 # ==========================================
-# 13. RÉCAPITULATIF FINAL
+# 12. RÉCAPITULATIF FINAL
 # ==========================================
 st.markdown("---")
 st.subheader("🎯 Récapitulatif Stratégique : Propositions de Recrutement & Transferts")
