@@ -94,7 +94,13 @@ df_raw = load_base_data()
 # 2. PARSING DMS (tolérant)
 # ==========================================
 def _dms_to_dec_single(txt):
-    """Convertit une chaîne DMS en (lat, lon). Tolère ? ° , et ordre inversé."""
+    """
+    Convertit une chaîne DMS en (lat, lon). Tolère :
+    - séparateurs ? ou °
+    - virgules
+    - ordre Lat/Lon inversé (détection par N/S vs E/W)
+    - secondes manquantes
+    """
     if not isinstance(txt, str):
         return None, None
     s = (txt.replace("?", "°")
@@ -118,28 +124,77 @@ def _dms_to_dec_single(txt):
 
 
 # ==========================================
-# 3. CHARGEMENT DU FICHIER GPS CLIENTS
+# 3. CHARGEMENT ROBUSTE DU FICHIER GPS CLIENTS
 # ==========================================
+def _find_gps_column(columns):
+    """Détecte le nom de la colonne GPS parmi les alias courants."""
+    alias = (
+        "gps", "coordonnees", "coordonnées", "coordonnee", "coordonnée",
+        "position", "localisation", "coordonnees_gps", "point_gps",
+        "gps_coord", "coord",
+    )
+    for col in columns:
+        if str(col).strip().lower() in alias:
+            return col
+    return None
+
+
 @st.cache_data
 def load_gps_data(_uploaded_file=None):
-    """Charge Coord_GPS.xlsx (chemin absolu + fallback upload)."""
+    """
+    Charge le fichier GPS :
+      1) Coord_GPS.xlsx dans le dossier du script
+      2) Sinon le fichier uploadé
+    Lit automatiquement la PREMIÈRE feuille contenant des données GPS.
+    """
     base_dir = os.path.dirname(os.path.abspath(__file__))
     default_path = os.path.join(base_dir, "Coord_GPS.xlsx")
 
-    df_gps = None
+    source = None
     if os.path.exists(default_path):
-        try:
-            df_gps = pd.read_excel(default_path, sheet_name="Feuil1")
-        except Exception as e:
-            st.error(f"Erreur de lecture `{default_path}` : {e}")
-            return pd.DataFrame()
+        source = default_path
     elif _uploaded_file is not None:
-        try:
-            df_gps = pd.read_excel(_uploaded_file, sheet_name="Feuil1")
-        except Exception as e:
-            st.error(f"Erreur de lecture du fichier uploadé : {e}")
-            return pd.DataFrame()
+        source = _uploaded_file
     else:
+        return pd.DataFrame()
+
+    # --- Ouverture du classeur ---
+    try:
+        xls = pd.ExcelFile(source)
+        sheet_names = xls.sheet_names
+    except Exception as e:
+        st.error(f"❌ Impossible d'ouvrir le classeur : {e}")
+        return pd.DataFrame()
+
+    # --- Choix de la feuille : on cherche celle qui a une colonne GPS ---
+    sheet_to_use = None
+    for sh in sheet_names:
+        try:
+            tmp = pd.read_excel(source, sheet_name=sh, nrows=5)
+            tmp.columns = [str(c).strip() for c in tmp.columns]
+            if _find_gps_column(tmp.columns) is not None:
+                sheet_to_use = sh
+                break
+        except Exception:
+            continue
+
+    # Fallback : noms usuels
+    if sheet_to_use is None:
+        for c in ["Feuil1", "Feuille1", "Sheet1", "GPS", "Coordonnees",
+                  "Coordonnées", "Data", "Clients"]:
+            if c in sheet_names:
+                sheet_to_use = c
+                break
+
+    # Fallback ultime : première feuille
+    if sheet_to_use is None:
+        sheet_to_use = sheet_names[0]
+
+    # --- Lecture complète de la feuille choisie ---
+    try:
+        df_gps = pd.read_excel(source, sheet_name=sheet_to_use)
+    except Exception as e:
+        st.error(f"❌ Erreur de lecture de la feuille `{sheet_to_use}` : {e}")
         return pd.DataFrame()
 
     df_gps.columns = [str(c).strip() for c in df_gps.columns]
@@ -148,29 +203,48 @@ def load_gps_data(_uploaded_file=None):
     if not df_gps.empty and str(df_gps.iloc[0].get("Ag", "")).strip() == "Ag":
         df_gps = df_gps.iloc[1:].reset_index(drop=True)
 
-    if "GPS" not in df_gps.columns:
-        st.error("La colonne `GPS` est absente du fichier Excel.")
+    # --- Détection colonne GPS ---
+    gps_col = _find_gps_column(df_gps.columns)
+    if gps_col is None:
+        st.error(
+            f"❌ Aucune colonne GPS trouvée. Colonnes disponibles : "
+            f"{list(df_gps.columns)}"
+        )
         return pd.DataFrame()
 
-    coords = df_gps["GPS"].apply(_dms_to_dec_single)
+    # --- Parsing DMS ---
+    coords = df_gps[gps_col].apply(_dms_to_dec_single)
     df_gps["Lat"] = [c[0] for c in coords]
     df_gps["Lon"] = [c[1] for c in coords]
 
+    # Filtre Madagascar
     df_gps = df_gps.dropna(subset=["Lat", "Lon"])
     df_gps = df_gps[
         df_gps["Lat"].between(-26, -11) & df_gps["Lon"].between(42, 51)
     ]
+
+    st.success(
+        f"✅ Fichier GPS chargé — feuille `{sheet_to_use}` — "
+        f"{len(df_gps):,} points valides."
+    )
     return df_gps.reset_index(drop=True)
 
 
-# Upload manuel si fichier absent côté serveur
+# --- Chargement initial (uploader si absent du serveur) ---
 _base_dir = os.path.dirname(os.path.abspath(__file__))
-if not os.path.exists(os.path.join(_base_dir, "Coord_GPS.xlsx")):
-    st.warning(
+_default_exists = os.path.exists(os.path.join(_base_dir, "Coord_GPS.xlsx"))
+
+if not _default_exists:
+    st.info(
         "📂 Le fichier `Coord_GPS.xlsx` n'est pas présent sur le serveur. "
-        "Veuillez l'uploader ci-dessous pour afficher les points de vente."
+        "Vous pouvez l'uploader ci-dessous pour afficher les points de vente. "
+        "*(Le nom de la feuille est détecté automatiquement, plus besoin qu'elle "
+        "s'appelle `Feuil1`.)*"
     )
-    _uploaded = st.file_uploader("Charger Coord_GPS.xlsx", type=["xlsx"])
+    _uploaded = st.file_uploader(
+        "Charger le fichier Excel des coordonnées GPS",
+        type=["xlsx", "xls"],
+    )
     df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
 else:
     df_clients_gps = load_gps_data()
@@ -581,44 +655,71 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
     elif map_mode == "Détail des Points de Vente par Type & Commercial":
         if df_clients_gps.empty:
             st.warning(
-                "Aucun point de vente chargé. Uploadez `Coord_GPS.xlsx` "
+                "Aucun point de vente chargé. Uploadez le fichier Excel "
                 "ou vérifiez sa présence dans le dépôt."
             )
         else:
-            selected_agence_map = st.selectbox(
-                "Filtrer par Agence :",
-                ["Toutes les agences"] + df["Agence"].tolist(),
-            )
-            df_map_filtered = df_clients_gps.copy()
-            if selected_agence_map != "Toutes les agences":
-                ag_id = str(int(selected_agence_map.split("-")[0])).zfill(2)
-                df_map_filtered = df_map_filtered[
-                    df_map_filtered["Ag"].astype(str).str.zfill(2) == ag_id
-                ]
+            # Détection de la colonne agence dans le fichier GPS
+            ag_col = None
+            for c in df_clients_gps.columns:
+                if str(c).strip().lower() in ("ag", "agence", "code_agence",
+                                              "code agence", "id_agence"):
+                    ag_col = c
+                    break
 
-            if len(df_map_filtered) > 3000 and selected_agence_map == "Toutes les agences":
+            if ag_col is not None:
+                selected_agence_map = st.selectbox(
+                    "Filtrer par Agence :",
+                    ["Toutes les agences"] + df["Agence"].tolist(),
+                )
+                df_map_filtered = df_clients_gps.copy()
+                if selected_agence_map != "Toutes les agences":
+                    ag_id = str(int(selected_agence_map.split("-")[0])).zfill(2)
+                    df_map_filtered = df_map_filtered[
+                        df_map_filtered[ag_col].astype(str).str.zfill(2) == ag_id
+                    ]
+            else:
                 st.info(
-                    "ℹ️ Échantillon de 3 000 points affiché. "
-                    "Filtrez par agence pour tout voir."
+                    "ℹ️ Colonne `Ag` absente du fichier — affichage de tous les "
+                    "points de vente."
+                )
+                df_map_filtered = df_clients_gps.copy()
+
+            if len(df_map_filtered) > 3000:
+                st.info(
+                    "ℹ️ Échantillon de 3 000 points affiché pour la fluidité."
                 )
                 df_map_filtered = df_map_filtered.sample(3000, random_state=42)
 
-            fig_map = scatter_map_auto(
-                df_map_filtered,
+            # Colonnes de hover disponibles
+            hover_cols = {}
+            for c in ["Nom CS2", "Nom client", "Description activité",
+                      "Activite", "CS"]:
+                if c in df_map_filtered.columns:
+                    hover_cols[c] = True
+            hover_cols["Lat"] = False
+            hover_cols["Lon"] = False
+
+            color_col = None
+            for c in ["Description activité", "Activite", "Description activite"]:
+                if c in df_map_filtered.columns:
+                    color_col = c
+                    break
+
+            kwargs = dict(
                 lat="Lat", lon="Lon",
-                color="Description activité",
-                hover_name="Nom client",
-                hover_data={
-                    "Nom CS2": True,
-                    "Description activité": True,
-                    "Lat": False, "Lon": False,
-                },
+                hover_name="Nom client" if "Nom client" in df_map_filtered.columns else None,
+                hover_data=hover_cols,
                 zoom=5.5,
                 center={"lat": -18.79, "lon": 46.85},
                 mapbox_style="open-street-map",
                 height=650,
                 title="Cartographie des Points de Vente",
             )
+            if color_col is not None:
+                kwargs["color"] = color_col
+
+            fig_map = scatter_map_auto(df_map_filtered, **kwargs)
             fig_map.update_traces(marker=dict(size=6, opacity=0.75))
             st.caption(f"📍 {len(df_clients_gps):,} points de vente chargés.")
 
@@ -627,7 +728,6 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
         if df_clients_sup.empty:
             st.warning("Aucun client supplémentaire à afficher.")
         else:
-            # Agences (fond)
             fig_map = scatter_map_auto(
                 df,
                 lat="Lat", lon="Lon",
@@ -646,7 +746,6 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                 title="Zoom Sud — Agence 24-Fort-Dauphin & 12 clients",
             )
 
-            # Clients supplémentaires (points rouges)
             fig_cli = scatter_map_auto(
                 df_clients_sup,
                 lat="Lat", lon="Lon",
@@ -674,7 +773,7 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
 
 else:
     st.warning(
-        "⚠️ Aucune donnée GPS disponible. Uploadez `Coord_GPS.xlsx` "
+        "⚠️ Aucune donnée GPS disponible. Uploadez le fichier Excel "
         "pour afficher les points de vente."
     )
 
