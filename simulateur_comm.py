@@ -34,6 +34,24 @@ def scatter_map_auto(df, **kwargs):
     return px.scatter_map(df, **kwargs)
 
 
+def apply_marker_style(fig, size=6, opacity=0.75, line_width=None, line_color=None):
+    """
+    Applique un style de marqueur trace par trace, compatible Plotly 5 et 6.
+    Évite l'erreur `_perform_update` sur scatter_map / scatter_mapbox.
+    """
+    for trace in fig.data:
+        try:
+            trace.marker.size = size
+            trace.marker.opacity = opacity
+            if line_width is not None:
+                trace.marker.line.width = line_width
+            if line_color is not None:
+                trace.marker.line.color = line_color
+        except Exception:
+            # Certaines traces (ex: lignes) n'ont pas de marker → on ignore
+            pass
+
+
 # ==========================================
 # 1. DONNÉES DE BASE
 # ==========================================
@@ -94,13 +112,6 @@ df_raw = load_base_data()
 # 2. PARSING DMS (tolérant)
 # ==========================================
 def _dms_to_dec_single(txt):
-    """
-    Convertit une chaîne DMS en (lat, lon). Tolère :
-    - séparateurs ? ou °
-    - virgules
-    - ordre Lat/Lon inversé (détection par N/S vs E/W)
-    - secondes manquantes
-    """
     if not isinstance(txt, str):
         return None, None
     s = (txt.replace("?", "°")
@@ -127,7 +138,6 @@ def _dms_to_dec_single(txt):
 # 3. CHARGEMENT ROBUSTE DU FICHIER GPS CLIENTS
 # ==========================================
 def _find_gps_column(columns):
-    """Détecte le nom de la colonne GPS parmi les alias courants."""
     alias = (
         "gps", "coordonnees", "coordonnées", "coordonnee", "coordonnée",
         "position", "localisation", "coordonnees_gps", "point_gps",
@@ -141,12 +151,6 @@ def _find_gps_column(columns):
 
 @st.cache_data
 def load_gps_data(_uploaded_file=None):
-    """
-    Charge le fichier GPS :
-      1) Coord_GPS.xlsx dans le dossier du script
-      2) Sinon le fichier uploadé
-    Lit automatiquement la PREMIÈRE feuille contenant des données GPS.
-    """
     base_dir = os.path.dirname(os.path.abspath(__file__))
     default_path = os.path.join(base_dir, "Coord_GPS.xlsx")
 
@@ -158,7 +162,6 @@ def load_gps_data(_uploaded_file=None):
     else:
         return pd.DataFrame()
 
-    # --- Ouverture du classeur ---
     try:
         xls = pd.ExcelFile(source)
         sheet_names = xls.sheet_names
@@ -166,7 +169,6 @@ def load_gps_data(_uploaded_file=None):
         st.error(f"❌ Impossible d'ouvrir le classeur : {e}")
         return pd.DataFrame()
 
-    # --- Choix de la feuille : on cherche celle qui a une colonne GPS ---
     sheet_to_use = None
     for sh in sheet_names:
         try:
@@ -178,7 +180,6 @@ def load_gps_data(_uploaded_file=None):
         except Exception:
             continue
 
-    # Fallback : noms usuels
     if sheet_to_use is None:
         for c in ["Feuil1", "Feuille1", "Sheet1", "GPS", "Coordonnees",
                   "Coordonnées", "Data", "Clients"]:
@@ -186,11 +187,9 @@ def load_gps_data(_uploaded_file=None):
                 sheet_to_use = c
                 break
 
-    # Fallback ultime : première feuille
     if sheet_to_use is None:
         sheet_to_use = sheet_names[0]
 
-    # --- Lecture complète de la feuille choisie ---
     try:
         df_gps = pd.read_excel(source, sheet_name=sheet_to_use)
     except Exception as e:
@@ -199,11 +198,9 @@ def load_gps_data(_uploaded_file=None):
 
     df_gps.columns = [str(c).strip() for c in df_gps.columns]
 
-    # Suppression ligne d'en-tête répétée
     if not df_gps.empty and str(df_gps.iloc[0].get("Ag", "")).strip() == "Ag":
         df_gps = df_gps.iloc[1:].reset_index(drop=True)
 
-    # --- Détection colonne GPS ---
     gps_col = _find_gps_column(df_gps.columns)
     if gps_col is None:
         st.error(
@@ -212,12 +209,10 @@ def load_gps_data(_uploaded_file=None):
         )
         return pd.DataFrame()
 
-    # --- Parsing DMS ---
     coords = df_gps[gps_col].apply(_dms_to_dec_single)
     df_gps["Lat"] = [c[0] for c in coords]
     df_gps["Lon"] = [c[1] for c in coords]
 
-    # Filtre Madagascar
     df_gps = df_gps.dropna(subset=["Lat", "Lon"])
     df_gps = df_gps[
         df_gps["Lat"].between(-26, -11) & df_gps["Lon"].between(42, 51)
@@ -659,7 +654,6 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                 "ou vérifiez sa présence dans le dépôt."
             )
         else:
-            # Détection de la colonne agence dans le fichier GPS
             ag_col = None
             for c in df_clients_gps.columns:
                 if str(c).strip().lower() in ("ag", "agence", "code_agence",
@@ -685,9 +679,8 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                 )
                 df_map_filtered = df_clients_gps.copy()
 
-            # ✅ Toutes les lignes sont affichées (plus d'échantillonnage)
+            # ✅ Toutes les lignes affichées (pas d'échantillonnage)
 
-            # Colonnes de hover disponibles
             hover_cols = {}
             for c in ["Nom CS2", "Nom client", "Description activité",
                       "Activite", "CS"]:
@@ -702,7 +695,7 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                     color_col = c
                     break
 
-            # --- AJOUT : couleur NOIR TRÈS NOIR pour "ZONE BLANCHE" ---
+            # --- Couleur NOIR TRÈS NOIR pour "ZONE BLANCHE" ---
             color_discrete_map = None
             if color_col is not None:
                 unique_vals = df_map_filtered[color_col].astype(str).unique()
@@ -734,7 +727,7 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                     kwargs["color_discrete_map"] = color_discrete_map
 
             fig_map = scatter_map_auto(df_map_filtered, **kwargs)
-            fig_map.update_traces(marker=dict(size=6, opacity=0.75))
+            apply_marker_style(fig_map, size=6, opacity=0.75)
             st.caption(f"📍 {len(df_clients_gps):,} points de vente chargés.")
 
     # ---------- Mode 3 : Zoom Sud ----------
@@ -769,9 +762,10 @@ if not df_clients_gps.empty or not df_clients_sup.empty:
                 color_discrete_sequence=["#e63946"],
                 height=650,
             )
-            fig_cli.update_traces(
-                marker=dict(size=14, opacity=0.9,
-                            line=dict(width=2, color="white"))
+            # ✅ Style appliqué trace par trace (compatible Plotly 5 & 6)
+            apply_marker_style(
+                fig_cli, size=14, opacity=0.9,
+                line_width=2, line_color="white"
             )
             for tr in fig_cli.data:
                 fig_map.add_trace(tr)
