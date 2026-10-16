@@ -236,10 +236,7 @@ _default_exists = os.path.exists(os.path.join(_base_dir, "Coord_GPS.xlsx"))
 
 if not _default_exists:
     st.info(
-        "📂 Le fichier `Coord_GPS.xlsx` n'est pas présent sur le serveur. "
-        "Vous pouvez l'uploader ci-dessous pour afficher les points de vente. "
-        "*(Le nom de la feuille est détecté automatiquement, plus besoin qu'elle "
-        "s'appelle `Feuil1`.)*"
+        "_"
     )
     _uploaded = st.file_uploader(
         "Charger le fichier Excel des coordonnées GPS",
