@@ -152,14 +152,11 @@ st.markdown(
         border-bottom-color: #E3000F !important;
     }
 
-    /* --- MÉTRIQUES (KPI) - CORRIGÉ POUR LA LISIBILITÉ --- */
+    /* --- MÉTRIQUES STANDARDS (Pour le reste de l'app) --- */
     [data-testid="stMetricValue"] {
         color: #E3000F;
-        font-size: 1.6rem !important; /* Taille réduite pour éviter la coupure */
+        font-size: 1.6rem !important;
         font-weight: 700;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
     [data-testid="stMetricLabel"] {
         color: #009639;
@@ -171,6 +168,60 @@ st.markdown(
     .stDataFrame {
         border: 1px solid #e0e0e0;
         border-radius: 5px;
+    }
+
+    /* ==========================================
+       STYLE CARTES KPI (Style de l'image fournie)
+       ========================================== */
+    .kpi-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+    .kpi-card {
+        flex: 1;
+        background-color: #ffffff;
+        border-radius: 6px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+        border: 1px solid #eaeaea;
+        overflow: hidden;
+        text-align: center;
+        padding-bottom: 20px;
+        position: relative;
+    }
+    .kpi-header {
+        color: white;
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding: 8px 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    /* Couleurs des bandeaux (Bleu foncé, Bleu clair, Rouge, Jaune) */
+    .bg-dark-blue { background-color: #1f4e79; }
+    .bg-light-blue { background-color: #5b9bd5; }
+    .bg-red { background-color: #c00000; }
+    .bg-yellow { background-color: #ffc000; color: #333; }
+
+    .kpi-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #333333;
+        margin: 20px 0 5px 0;
+        line-height: 1;
+    }
+    .kpi-sub {
+        font-size: 0.8rem;
+        color: #666666;
+        font-weight: 500;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+    }
+    .kpi-arrow-up {
+        color: #70ad47; /* Vert pour la flèche */
+        font-weight: bold;
     }
     </style>
     """,
@@ -194,14 +245,12 @@ st.markdown(
 # ==========================================
 _HAS_SCATTER_MAPBOX = hasattr(px, "scatter_mapbox")
 
-
 def scatter_map_auto(df, **kwargs):
     if _HAS_SCATTER_MAPBOX:
         return px.scatter_mapbox(df, **kwargs)
     if "mapbox_style" in kwargs:
         kwargs["map_style"] = kwargs.pop("mapbox_style")
     return px.scatter_map(df, **kwargs)
-
 
 def apply_marker_style(fig, size=6, opacity=0.75, line_width=None, line_color=None):
     for trace in fig.data:
@@ -267,11 +316,10 @@ def load_base_data():
     }
     return pd.DataFrame(data)
 
-
 df_raw = load_base_data()
 
 # ==========================================
-# 2. PARSING DMS (tolérant)
+# 2. PARSING DMS
 # ==========================================
 def _dms_to_dec_single(txt):
     if not isinstance(txt, str):
@@ -308,7 +356,6 @@ def _find_gps_column(columns):
         if str(col).strip().lower() in alias:
             return col
     return None
-
 
 @st.cache_data
 def load_gps_data(_uploaded_file=None):
@@ -454,12 +501,39 @@ nat_pdv_cs = df["PDV_Total_Ajuste"].sum() / df["Total_CS_Propose"].sum()
 nat_pdv_mv = df["PDV_Total_Ajuste"].sum() / df["MV"].sum()
 
 st.subheader("🇲🇬 Indicateurs Clés de Référence (Moyenne Nationale)")
-kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-# Simplification du texte pour éviter les coupures "..."
-kpi1.metric("Volume Moyen / CS", f"{nat_vol_cs:,.0f}", f"Cible: {cible_vol_cs:,.0f}")
-kpi2.metric("Volume Moyen / MV", f"{nat_vol_mv:,.0f}")
-kpi3.metric("PDV Moyens / CS", f"{nat_pdv_cs:.1f}")
-kpi4.metric("PDV Moyens / MV", f"{nat_pdv_mv:.1f}")
+
+# ==========================================
+# MODIFICATION : Affichage en style "Cartes" (KPI Cards)
+# ==========================================
+st.markdown(f"""
+    <div class="kpi-container">
+        <!-- Carte 1 -->
+        <div class="kpi-card">
+            <div class="kpi-header bg-dark-blue">Volume Moyen / CS</div>
+            <div class="kpi-value">{nat_vol_cs:,.0f}</div>
+            <div class="kpi-sub"><span class="kpi-arrow-up">↑</span> Cible : {cible_vol_cs:,.0f}</div>
+        </div>
+        <!-- Carte 2 -->
+        <div class="kpi-card">
+            <div class="kpi-header bg-light-blue">Volume Moyen / MV</div>
+            <div class="kpi-value">{nat_vol_mv:,.0f}</div>
+            <div class="kpi-sub">Moyenne Nationale</div>
+        </div>
+        <!-- Carte 3 -->
+        <div class="kpi-card">
+            <div class="kpi-header bg-red">PDV Moyens / CS</div>
+            <div class="kpi-value">{nat_pdv_cs:.1f}</div>
+            <div class="kpi-sub">Points de Vente</div>
+        </div>
+        <!-- Carte 4 -->
+        <div class="kpi-card">
+            <div class="kpi-header bg-yellow">PDV Moyens / MV</div>
+            <div class="kpi-value">{nat_pdv_mv:.1f}</div>
+            <div class="kpi-sub">Points de Vente</div>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
 st.markdown("---")
 
 def get_statut_cs(pdv_cs):
