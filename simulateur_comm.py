@@ -152,7 +152,7 @@ st.markdown(
         border-bottom-color: #E3000F !important;
     }
 
-    /* --- MÉTRIQUES STANDARDS (Pour le reste de l'app) --- */
+    /* --- MÉTRIQUES STANDARDS --- */
     [data-testid="stMetricValue"] {
         color: #E3000F;
         font-size: 1.6rem !important;
@@ -171,7 +171,7 @@ st.markdown(
     }
 
     /* ==========================================
-       STYLE CARTES KPI (Style de l'image fournie)
+       STYLE CARTES KPI
        ========================================== */
     .kpi-container {
         display: flex;
@@ -220,7 +220,7 @@ st.markdown(
         gap: 5px;
     }
     .kpi-arrow-up {
-        color: #70ad47; /* Vert pour la flèche */
+        color: #70ad47;
         font-weight: bold;
     }
     </style>
@@ -503,7 +503,7 @@ nat_pdv_mv = df["PDV_Total_Ajuste"].sum() / df["MV"].sum()
 st.subheader("🇲🇬 Indicateurs Clés de Référence (Moyenne Nationale)")
 
 # ==========================================
-# MODIFICATION : Affichage en style "Cartes" (KPI Cards)
+# AFFICHAGE KPI CARDS
 # ==========================================
 st.markdown(f"""
     <div class="kpi-container">
@@ -517,7 +517,7 @@ st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-header bg-light-blue">Volume Moyen / MV</div>
             <div class="kpi-value">{nat_vol_mv:,.0f}</div>
-            <div class="kpi-sub">Moyenne Nationale</div>
+            <div class="kpi-sub">Hecto</div>
         </div>
         <!-- Carte 3 -->
         <div class="kpi-card">
