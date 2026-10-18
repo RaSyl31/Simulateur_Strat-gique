@@ -17,14 +17,11 @@ st.set_page_config(
 # ==========================================
 # LECTURE DU LOGO STAR (Fichier local)
 # ==========================================
-# On lit le fichier star.png qui se trouve dans le même dossier
-# et on le convertit en base64 pour l'afficher dans le HTML sans bug d'URL
 try:
     with open("star.png", "rb") as f:
         logo_b64 = base64.b64encode(f.read()).decode()
     logo_html = f'<img src="data:image/png;base64,{logo_b64}" alt="Logo STAR">'
 except Exception:
-    # Si le fichier n'est pas trouvé, on affiche un texte de secours
     logo_html = '<p style="color:#E3000F; font-weight:bold; font-size:1.5rem;">STAR ★</p>'
 
 # ==========================================
@@ -42,6 +39,11 @@ st.markdown(
     }}
     .block-container {{
         padding-top: 1rem !important;
+    }}
+    
+    /* --- RÉDUCTION DE L'ESPACE EN HAUT DE LA SIDEBAR --- */
+    [data-testid="stSidebarUserContent"] {{
+        padding-top: 0rem !important;
     }}
 
     /* Typographie globale */
@@ -148,10 +150,10 @@ st.markdown(
         border-right: 4px solid #009639;
     }}
     
-    /* Logo Sidebar - Taille contrôlée */
+    /* Logo Sidebar - Taille contrôlée et espace réduit */
     .sidebar-logo-container {{
         text-align: center;
-        padding: 10px 0;
+        padding: 0 0 10px 0;
         margin-bottom: 10px;
         border-bottom: 1px solid #e0e0e0;
     }}
@@ -493,7 +495,6 @@ df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
 # ==========================================
 # 4. SIDEBAR — LOGO ET PARAMÈTRES
 # ==========================================
-# On utilise la variable logo_html définie en haut du fichier
 st.sidebar.markdown(
     f"""
     <div class="sidebar-logo-container">
