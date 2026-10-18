@@ -1,6 +1,7 @@
 import io
 import os
 import re
+import base64
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -14,31 +15,43 @@ st.set_page_config(
 )
 
 # ==========================================
+# LECTURE DU LOGO STAR (Fichier local)
+# ==========================================
+# On lit le fichier star.png qui se trouve dans le même dossier
+# et on le convertit en base64 pour l'afficher dans le HTML sans bug d'URL
+try:
+    with open("star.png", "rb") as f:
+        logo_b64 = base64.b64encode(f.read()).decode()
+    logo_html = f'<img src="data:image/png;base64,{logo_b64}" alt="Logo STAR">'
+except Exception:
+    # Si le fichier n'est pas trouvé, on affiche un texte de secours
+    logo_html = '<p style="color:#E3000F; font-weight:bold; font-size:1.5rem;">STAR ★</p>'
+
+# ==========================================
 # THÈME GLOBAL - CHARTE GRAPHIQUE STAR
 # ==========================================
 st.markdown(
-    """
+    f"""
     <style>
     /* Importation des polices */
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap');
 
     /* Réduction de l'espace vide en haut de la page */
-    [data-testid="stAppViewContainer"] > .main {
+    [data-testid="stAppViewContainer"] > .main {{
         padding-top: 1rem !important;
-    }
-    .block-container {
+    }}
+    .block-container {{
         padding-top: 1rem !important;
-    }
+    }}
 
     /* Typographie globale */
-    html, body, [class*="css"] {
+    html, body, [class*="css"] {{
         font-family: 'Montserrat', sans-serif;
-    }
+    }}
 
     /* --- EN-TÊTE PRINCIPAL --- */
-    .header-star {
+    .header-star {{
         background: #ffffff;
-        /* PADDING ÉQUILIBRÉ EN HAUT ET EN BAS */
         padding: 25px 30px 25px 30px; 
         border-radius: 10px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.08);
@@ -48,9 +61,9 @@ st.markdown(
         overflow: hidden;
         border-left: 8px solid transparent;
         border-image: linear-gradient(to bottom, #E3000F 50%, #009639 50%) 1;
-    }
+    }}
     
-    .header-star::before {
+    .header-star::before {{
         content: '';
         position: absolute;
         top: -80px;
@@ -60,8 +73,8 @@ st.markdown(
         background: radial-gradient(circle, rgba(227,0,15,0.05) 0%, rgba(255,255,255,0) 70%);
         border-radius: 50%;
         pointer-events: none;
-    }
-    .header-star::after {
+    }}
+    .header-star::after {{
         content: '';
         position: absolute;
         bottom: -80px;
@@ -71,42 +84,42 @@ st.markdown(
         background: radial-gradient(circle, rgba(0,150,57,0.05) 0%, rgba(255,255,255,0) 70%);
         border-radius: 50%;
         pointer-events: none;
-    }
+    }}
 
-    .header-title-star {
+    .header-title-star {{
         font-size: 2.2rem;
         font-weight: 900;
         color: #1a1a1a;
-        margin: 0; /* Annule la marge par défaut */
+        margin: 0;
         line-height: 1.2;
         text-transform: uppercase;
         letter-spacing: -0.5px;
         position: relative;
         z-index: 1;
         display: inline-block;
-    }
+    }}
 
-    .text-red {
+    .text-red {{
         color: #E3000F;
-    }
+    }}
 
-    .star-icon {
+    .star-icon {{
         color: #E3000F;
         font-size: 2rem;
         margin-left: 15px;
         display: inline-block;
         animation: spin-star 4s linear infinite;
         text-shadow: 2px 2px 4px rgba(227,0,15,0.2);
-    }
+    }}
 
-    @keyframes spin-star {
-        0% { transform: rotate(0deg) scale(1); }
-        50% { transform: rotate(180deg) scale(1.1); }
-        100% { transform: rotate(360deg) scale(1); }
-    }
+    @keyframes spin-star {{
+        0% {{ transform: rotate(0deg) scale(1); }}
+        50% {{ transform: rotate(180deg) scale(1.1); }}
+        100% {{ transform: rotate(360deg) scale(1); }}
+    }}
 
     /* --- SOUS-TITRES (CADRE GRIS/ROUGE) --- */
-    h2, h3 {
+    h2, h3 {{
         color: #E3000F !important;
         font-family: 'Montserrat', sans-serif;
         font-weight: 700 !important;
@@ -124,33 +137,33 @@ st.markdown(
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-    }
+    }}
 
-    h2 { font-size: 1.5rem !important; }
-    h3 { font-size: 1.3rem !important; }
+    h2 {{ font-size: 1.5rem !important; }}
+    h3 {{ font-size: 1.3rem !important; }}
 
     /* --- BARRE LATÉRALE (SIDEBAR) --- */
-    [data-testid="stSidebar"] {
+    [data-testid="stSidebar"] {{
         background-color: #f8f9fa;
         border-right: 4px solid #009639;
-    }
+    }}
     
     /* Logo Sidebar - Taille contrôlée */
-    .sidebar-logo-container {
+    .sidebar-logo-container {{
         text-align: center;
         padding: 10px 0;
         margin-bottom: 10px;
         border-bottom: 1px solid #e0e0e0;
-    }
-    .sidebar-logo-container img {
+    }}
+    .sidebar-logo-container img {{
         max-width: 160px;
         height: auto;
-    }
+    }}
 
     /* Titres de la sidebar */
     [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, 
-    [data-testid="stSidebar"] h3 {
+    [data-testid="stSidebar"] h3 {{
         color: #009639 !important;
         background-color: transparent;
         border: none;
@@ -162,10 +175,10 @@ st.markdown(
         white-space: nowrap;
         font-size: 1.2rem !important;
         line-height: 1.3;
-    }
+    }}
 
     /* --- BOUTONS --- */
-    .stButton>button, .stDownloadButton>button {
+    .stButton>button, .stDownloadButton>button {{
         background-color: #E3000F !important;
         color: white !important;
         border-radius: 5px;
@@ -173,57 +186,57 @@ st.markdown(
         font-weight: 600;
         padding: 0.5rem 1rem;
         transition: 0.3s;
-    }
-    .stButton>button:hover, .stDownloadButton>button:hover {
+    }}
+    .stButton>button:hover, .stDownloadButton>button:hover {{
         background-color: #b3000b !important;
-    }
+    }}
 
     /* --- EXPANDERS --- */
-    .streamlit-expanderHeader {
+    .streamlit-expanderHeader {{
         background-color: #f0f4f8 !important;
         color: #E3000F !important;
         font-weight: 700;
         border-left: 4px solid #009639;
-    }
+    }}
 
     /* --- ONGLETS --- */
-    .stTabs [data-baseweb="tab-list"] button {
+    .stTabs [data-baseweb="tab-list"] button {{
         background-color: transparent;
         color: #333;
         font-weight: 600;
-    }
-    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+    }}
+    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {{
         color: #E3000F !important;
         border-bottom-color: #E3000F !important;
-    }
+    }}
 
     /* --- MÉTRIQUES --- */
-    [data-testid="stMetricValue"] {
+    [data-testid="stMetricValue"] {{
         color: #E3000F;
         font-size: 1.6rem !important;
         font-weight: 700;
-    }
-    [data-testid="stMetricLabel"] {
+    }}
+    [data-testid="stMetricLabel"] {{
         color: #009639;
         font-size: 0.9rem !important;
         font-weight: 600;
-    }
+    }}
 
     /* --- TABLEAUX --- */
-    .stDataFrame {
+    .stDataFrame {{
         border: 1px solid #e0e0e0;
         border-radius: 5px;
-    }
+    }}
 
     /* ==========================================
        STYLE CARTES KPI
        ========================================== */
-    .kpi-container {
+    .kpi-container {{
         display: flex;
         gap: 15px;
         margin-bottom: 20px;
-    }
-    .kpi-card {
+    }}
+    .kpi-card {{
         flex: 1;
         background-color: #ffffff;
         border-radius: 6px;
@@ -233,28 +246,28 @@ st.markdown(
         text-align: center;
         padding-bottom: 15px;
         position: relative;
-    }
-    .kpi-header {
+    }}
+    .kpi-header {{
         color: white;
         font-weight: 700;
         font-size: 0.85rem;
         padding: 6px 5px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-    }
-    .bg-dark-blue { background-color: #1f4e79; }
-    .bg-light-blue { background-color: #5b9bd5; }
-    .bg-red { background-color: #c00000; }
-    .bg-yellow { background-color: #ffc000; color: #333; }
+    }}
+    .bg-dark-blue {{ background-color: #1f4e79; }}
+    .bg-light-blue {{ background-color: #5b9bd5; }}
+    .bg-red {{ background-color: #c00000; }}
+    .bg-yellow {{ background-color: #ffc000; color: #333; }}
 
-    .kpi-value {
+    .kpi-value {{
         font-size: 1.8rem;
         font-weight: 800;
         color: #333333;
         margin: 15px 0 5px 0;
         line-height: 1;
-    }
-    .kpi-sub {
+    }}
+    .kpi-sub {{
         font-size: 0.8rem;
         color: #666666;
         font-weight: 500;
@@ -262,11 +275,11 @@ st.markdown(
         justify-content: center;
         align-items: center;
         gap: 5px;
-    }
-    .kpi-arrow-up {
+    }}
+    .kpi-arrow-up {{
         color: #70ad47;
         font-weight: bold;
-    }
+    }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -480,10 +493,11 @@ df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
 # ==========================================
 # 4. SIDEBAR — LOGO ET PARAMÈTRES
 # ==========================================
+# On utilise la variable logo_html définie en haut du fichier
 st.sidebar.markdown(
-    """
+    f"""
     <div class="sidebar-logo-container">
-        <img src="star.png" alt="Logo STAR">
+        {logo_html}
     </div>
     """,
     unsafe_allow_html=True,
