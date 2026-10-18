@@ -96,14 +96,14 @@ st.markdown(
     }
 
     /* --- SOUS-TITRES ENCADRÉS (CENTRÉS ET SANS RETOUR À LA LIGNE) --- */
-    h2, h3, .custom-subtitle {
+    h2, h3 {
         color: #E3000F !important;
         font-family: 'Montserrat', sans-serif;
         font-weight: 700 !important;
         background-color: #ffffff;
         padding: 12px 20px;
         border-radius: 8px;
-        border: 1.5px solid #E3000F; /* Contour rouge STAR fin */
+        border: 1.5px solid #E3000F;
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         margin-top: 30px;
         margin-bottom: 20px;
@@ -112,14 +112,13 @@ st.markdown(
         display: flex;
         justify-content: center;
         align-items: center;
-        white-space: nowrap; /* Force sur une seule ligne */
+        white-space: nowrap;
         overflow: hidden;
-        text-overflow: ellipsis; /* Ajoute "..." si c'est trop long */
+        text-overflow: ellipsis;
     }
 
-    /* Ajustement de la taille pour les titres plus longs */
     h2 { font-size: 1.5rem !important; }
-    h3, .custom-subtitle { font-size: 1.3rem !important; }
+    h3 { font-size: 1.3rem !important; }
 
     /* --- BARRE LATÉRALE (SIDEBAR) --- */
     [data-testid="stSidebar"] {
@@ -779,10 +778,8 @@ couverture_besoin = (
     (vol_par_cs_agence / seuil_rentabilite_hl) * 100 if seuil_rentabilite_hl > 0 else 0
 )
 
-st.markdown(
-    f'<div class="custom-subtitle">📋 Mode de calcul & Résultats pour : {selected_fin_agence}</div>', 
-    unsafe_allow_html=True
-)
+# --- CORRECTION ICI : Utilisation d'une st.info simple et neutre ---
+st.info(f"**Mode de calcul & Résultats pour : {selected_fin_agence}**")
 
 st.latex(
     r"\text{Seuil de Rentabilité (Break-even)} = "
