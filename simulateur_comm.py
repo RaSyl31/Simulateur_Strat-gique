@@ -95,18 +95,19 @@ st.markdown(
         100% { transform: rotate(360deg) scale(1); }
     }
 
-    /* --- SOUS-TITRES ENCADRÉS (CENTRÉS ET SANS RETOUR À LA LIGNE) --- */
+    /* --- SOUS-TITRES (STYLE DU CADRE DE SIMULATION) --- */
     h2, h3 {
         color: #E3000F !important;
         font-family: 'Montserrat', sans-serif;
         font-weight: 700 !important;
-        background-color: #ffffff;
-        padding: 12px 20px;
+        background-color: #f0f4f8; /* Fond gris clair */
+        border-left: 6px solid #E3000F; /* Bordure gauche rouge */
+        padding: 15px 20px;
         border-radius: 8px;
-        border: 1.5px solid #E3000F;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        box-shadow: none;
+        border-top: none; border-right: none; border-bottom: none;
         margin-top: 30px;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
         
         /* Centrage et gestion de ligne */
         display: flex;
@@ -117,8 +118,8 @@ st.markdown(
         text-overflow: ellipsis;
     }
 
-    h2 { font-size: 1.5rem !important; }
-    h3 { font-size: 1.3rem !important; }
+    h2 { font-size: 1.6rem !important; }
+    h3 { font-size: 1.4rem !important; }
 
     /* --- BARRE LATÉRALE (SIDEBAR) --- */
     [data-testid="stSidebar"] {
@@ -133,7 +134,6 @@ st.markdown(
         border: none;
         box-shadow: none;
         padding: 0;
-        border-left: none;
         display: block;
         white-space: normal;
     }
@@ -636,22 +636,7 @@ st.dataframe(
 # 7. SIMULATEUR AVANT / APRÈS
 # ==========================================
 st.markdown("---")
-st.markdown(
-    """
-    <style>
-    .sim-container {
-        background-color: #f0f4f8;
-        border-left: 6px solid #E3000F;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 25px;
-    }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
 
-st.markdown('<div class="sim-container">', unsafe_allow_html=True)
 st.subheader("🔄 Module de Simulation Avant / Après : Ajustement des Effectifs (CS & MV)")
 st.markdown(
     "Simulez l'impact d'un **recrutement ou transfert d'effectifs** (+/- CS et MV) "
@@ -715,7 +700,6 @@ st.dataframe(
     ),
     use_container_width=True,
 )
-st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
 # 8. GRAPHIQUES
@@ -778,7 +762,6 @@ couverture_besoin = (
     (vol_par_cs_agence / seuil_rentabilite_hl) * 100 if seuil_rentabilite_hl > 0 else 0
 )
 
-# --- CORRECTION ICI : Utilisation d'une st.info simple et neutre ---
 st.info(f"**Mode de calcul & Résultats pour : {selected_fin_agence}**")
 
 st.latex(
