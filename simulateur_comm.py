@@ -38,11 +38,11 @@ st.markdown(
     /* --- EN-TÊTE PRINCIPAL --- */
     .header-star {
         background: #ffffff;
-        padding: 35px 40px;
+        padding: 25px 30px; /* Réduit */
         border-radius: 10px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        margin-bottom: 25px; /* Marge réduite */
-        margin-top: 0px;     /* Pas de marge au dessus */
+        margin-bottom: 20px; /* Réduit */
+        margin-top: 0px;
         position: relative;
         overflow: hidden;
         border-left: 8px solid transparent;
@@ -104,19 +104,22 @@ st.markdown(
         100% { transform: rotate(360deg) scale(1); }
     }
 
-    /* --- SOUS-TITRES (STYLE CADRE GRIS/ROUGE) --- */
+    /* --- SOUS-TITRES (STYLE CADRE GRIS/ROUGE COMPACT) --- */
     h2, h3 {
         color: #E3000F !important;
         font-family: 'Montserrat', sans-serif;
         font-weight: 700 !important;
         background-color: #f0f4f8;
         border-left: 6px solid #E3000F;
-        padding: 15px 20px;
-        border-radius: 8px;
+        
+        /* Réduction des espaces vides */
+        padding: 6px 15px !important; /* Espace intérieur réduit */
+        margin-top: 15px !important;   /* Espace extérieur haut réduit */
+        margin-bottom: 15px !important;/* Espace extérieur bas réduit */
+        
+        border-radius: 6px;
         box-shadow: none;
         border-top: none; border-right: none; border-bottom: none;
-        margin-top: 20px;
-        margin-bottom: 25px;
         
         display: flex;
         justify-content: center;
@@ -126,8 +129,8 @@ st.markdown(
         text-overflow: ellipsis;
     }
 
-    h2 { font-size: 1.6rem !important; }
-    h3 { font-size: 1.4rem !important; }
+    h2 { font-size: 1.5rem !important; }
+    h3 { font-size: 1.3rem !important; }
 
     /* --- BARRE LATÉRALE (SIDEBAR) --- */
     [data-testid="stSidebar"] {
@@ -142,6 +145,8 @@ st.markdown(
         border: none;
         box-shadow: none;
         padding: 0;
+        margin-top: 5px;
+        margin-bottom: 5px;
         display: block;
         white-space: normal;
     }
@@ -203,7 +208,7 @@ st.markdown(
     .kpi-container {
         display: flex;
         gap: 15px;
-        margin-bottom: 25px;
+        margin-bottom: 20px; /* Réduit */
     }
     .kpi-card {
         flex: 1;
@@ -213,14 +218,14 @@ st.markdown(
         border: 1px solid #eaeaea;
         overflow: hidden;
         text-align: center;
-        padding-bottom: 20px;
+        padding-bottom: 15px; /* Réduit */
         position: relative;
     }
     .kpi-header {
         color: white;
         font-weight: 700;
         font-size: 0.85rem;
-        padding: 8px 5px;
+        padding: 6px 5px; /* Réduit */
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
@@ -230,10 +235,10 @@ st.markdown(
     .bg-yellow { background-color: #ffc000; color: #333; }
 
     .kpi-value {
-        font-size: 2rem;
+        font-size: 1.8rem; /* Réduit */
         font-weight: 800;
         color: #333333;
-        margin: 20px 0 5px 0;
+        margin: 15px 0 5px 0; /* Réduit */
         line-height: 1;
     }
     .kpi-sub {
