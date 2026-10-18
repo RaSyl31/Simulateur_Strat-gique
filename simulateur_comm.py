@@ -95,7 +95,7 @@ st.markdown(
         100% { transform: rotate(360deg) scale(1); }
     }
 
-    /* --- SOUS-TITRES ENCADRÉS --- */
+    /* --- SOUS-TITRES ENCADRÉS (CONTOUR ROUGE UNIQUEMENT) --- */
     h2, h3 {
         color: #E3000F !important;
         font-family: 'Montserrat', sans-serif;
@@ -103,8 +103,7 @@ st.markdown(
         background-color: #ffffff;
         padding: 12px 20px;
         border-radius: 8px;
-        border: 1px solid #e0e0e0;
-        border-left: 6px solid #009639; /* Bordure verte STAR */
+        border: 1.5px solid #E3000F; /* Contour rouge STAR fin */
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         margin-top: 30px;
         margin-bottom: 20px;
