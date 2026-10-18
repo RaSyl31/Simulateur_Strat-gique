@@ -521,7 +521,7 @@ if not df_clients_gps.empty:
             box-shadow: 0 4px 10px rgba(227,0,15,0.3);
         }
         </style>
-        <a href="#section-carte" class="link-carte">🗺️ Accéder à la carte interactive</a>
+        <a href="#section-carte" class="link-carte">🗺️ Accéder à la carte</a>
         """,
         unsafe_allow_html=True
     )
