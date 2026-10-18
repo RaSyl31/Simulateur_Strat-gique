@@ -231,6 +231,17 @@ st.markdown(
         border-radius: 5px;
     }}
 
+    /* --- RÉDUCTION DES ESPACES DE LA CARTE PLOTLY --- */
+    [data-testid="stPlotlyChart"] {{
+        margin-top: 0px !important;
+        margin-bottom: 0px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+    }}
+    .js-plotly-plot .plotly .main-svg {{
+        border-radius: 8px; /* Pour arrondir les bords de la carte */
+    }}
+
     /* ==========================================
        STYLE CARTES KPI
        ========================================== */
@@ -503,15 +514,15 @@ if not df_clients_gps.empty:
         .link-carte {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             background-color: #E3000F;
             color: white !important;
             text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 5px 12px;
+            border-radius: 5px;
             font-weight: 600;
-            font-size: 0.95rem;
-            margin-bottom: 15px;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
             transition: 0.2s;
             box-shadow: 0 2px 5px rgba(227,0,15,0.2);
         }
