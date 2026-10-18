@@ -40,6 +40,7 @@ st.markdown(
     }}
     .block-container {{
         padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
     }}
     
     /* --- RÉDUCTION DE L'ESPACE EN HAUT DE LA SIDEBAR --- */
@@ -145,6 +146,12 @@ st.markdown(
     h2 {{ font-size: 1.5rem !important; }}
     h3 {{ font-size: 1.3rem !important; }}
 
+    /* --- RÉDUCTION DES ESPACES POUR LES LIGNES (HR) --- */
+    hr {{
+        margin-top: 10px !important;
+        margin-bottom: 10px !important;
+    }}
+
     /* --- BARRE LATÉRALE (SIDEBAR) --- */
     [data-testid="stSidebar"] {{
         background-color: #f8f9fa;
@@ -231,15 +238,17 @@ st.markdown(
         border-radius: 5px;
     }}
 
-    /* --- RÉDUCTION DES ESPACES DE LA CARTE PLOTLY --- */
+    /* --- RÉDUCTION DRACONIENNE DES ESPACES DE LA CARTE PLOTLY --- */
     [data-testid="stPlotlyChart"] {{
         margin-top: 0px !important;
         margin-bottom: 0px !important;
         padding-top: 0px !important;
         padding-bottom: 0px !important;
     }}
+    
+    /* Réduction des marges internes (titre + légende de la carte Plotly) */
     .js-plotly-plot .plotly .main-svg {{
-        border-radius: 8px; /* Pour arrondir les bords de la carte */
+        border-radius: 8px;
     }}
 
     /* ==========================================
