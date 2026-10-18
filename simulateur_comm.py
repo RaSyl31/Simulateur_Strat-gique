@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import streamlit.components.v1 as components
 
 # ==========================================
 # CONFIGURATION DE LA PAGE
@@ -493,6 +494,39 @@ _uploaded = st.file_uploader(
 df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
 
 # ==========================================
+# AJOUT DU LIEN DE REDIRECTION VERS LA CARTE
+# ==========================================
+if not df_clients_gps.empty:
+    st.markdown(
+        """
+        <style>
+        .link-carte {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #E3000F;
+            color: white !important;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+            transition: 0.2s;
+            box-shadow: 0 2px 5px rgba(227,0,15,0.2);
+        }
+        .link-carte:hover {
+            background-color: #b3000b;
+            color: white !important;
+            box-shadow: 0 4px 10px rgba(227,0,15,0.3);
+        }
+        </style>
+        <a href="#section-carte" class="link-carte">🗺️ Accéder à la carte interactive</a>
+        """,
+        unsafe_allow_html=True
+    )
+
+# ==========================================
 # 4. SIDEBAR — LOGO ET PARAMÈTRES
 # ==========================================
 st.sidebar.markdown(
@@ -847,6 +881,10 @@ else:
 # 10. CARTE INTERACTIVE (AGENCES + CLIENTS GPS)
 # ==========================================
 st.markdown("---")
+
+# AJOUT DE L'ANCRE POUR LA REDIRECTION
+st.markdown('<div id="section-carte"></div>', unsafe_allow_html=True)
+
 st.subheader("🗺️ Carte Interactive : Agences & Points de Vente Détaillés")
 
 if not df_clients_gps.empty:
