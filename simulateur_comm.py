@@ -52,10 +52,10 @@ st.markdown(
         font-family: 'Montserrat', sans-serif;
     }}
 
-    /* --- EN-TÊTE PRINCIPAL (CENTRAGE PARFAIT) --- */
+    /* --- EN-TÊTE PRINCIPAL (CENTRAGE VERTICAL) --- */
     .header-star {{
         background: #ffffff;
-        padding: 20px 30px; 
+        padding: 25px 30px; 
         border-radius: 10px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.08);
         margin-bottom: 20px;
@@ -65,11 +65,11 @@ st.markdown(
         border-left: 8px solid transparent;
         border-image: linear-gradient(to bottom, #E3000F 50%, #009639 50%) 1;
         
-        /* Flexbox pour centrage vertical et horizontal */
+        /* Flexbox pour le centrage vertical et horizontal */
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 80px;
+        min-height: 90px;
     }}
     
     .header-star::before {{
@@ -95,6 +95,7 @@ st.markdown(
         pointer-events: none;
     }}
 
+    /* Le texte prend 100% de la place pour être centré tout seul */
     .header-title-star {{
         font-size: 2.2rem;
         font-weight: 900;
@@ -105,28 +106,30 @@ st.markdown(
         letter-spacing: -0.5px;
         position: relative;
         z-index: 1;
-        display: flex;
-        align-items: center;
         text-align: center;
+        width: 100%;
     }}
 
     .text-red {{
         color: #E3000F;
     }}
 
+    /* L'étoile est placée en absolu pour ne pas casser le centrage */
     .star-icon {{
+        position: absolute;
+        right: 30px;
+        top: 50%;
+        transform: translateY(-50%);
         color: #E3000F;
-        font-size: 2rem;
-        margin-left: 15px;
-        display: inline-block;
+        font-size: 2.2rem;
         animation: spin-star 4s linear infinite;
         text-shadow: 2px 2px 4px rgba(227,0,15,0.2);
     }}
 
     @keyframes spin-star {{
-        0% {{ transform: rotate(0deg) scale(1); }}
-        50% {{ transform: rotate(180deg) scale(1.1); }}
-        100% {{ transform: rotate(360deg) scale(1); }}
+        0% {{ transform: translateY(-50%) rotate(0deg) scale(1); }}
+        50% {{ transform: translateY(-50%) rotate(180deg) scale(1.1); }}
+        100% {{ transform: translateY(-50%) rotate(360deg) scale(1); }}
     }}
 
     /* --- SOUS-TITRES (CADRE GRIS/ROUGE) --- */
@@ -314,13 +317,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Le texte est dans une div à 100% de largeur pour être centré
+# L'étoile est séparée dans un span absolu pour ne pas décaler le texte
 st.markdown(
     """
     <div class="header-star">
         <div class="header-title-star">
             <span class="text-red">Simulateur Stratégique & Optimisation Commerciale</span>
-            <span class="star-icon">★</span>
         </div>
+        <span class="star-icon">★</span>
     </div>
     """,
     unsafe_allow_html=True,
