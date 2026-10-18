@@ -13,63 +13,179 @@ st.set_page_config(
     page_title="Simulateur Commercial Madagascar", layout="wide"
 )
 
+# ==========================================
+# THÈME GLOBAL - CHARTE GRAPHIQUE STAR
+# ==========================================
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap');
+    /* Importation des polices */
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap');
 
-    .header-star {
+    /* Typographie globale */
+    html, body, [class*="css"] {
         font-family: 'Montserrat', sans-serif;
-        background: #ffffff;
-        padding: 30px 35px;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        margin-bottom: 30px;
-        position: relative;
-        overflow: hidden;
-        border-left: 8px solid #009639; /* Vert STAR */
     }
 
-    /* L'ellipse décorative en arrière-plan (rappel du logo) */
+    /* --- EN-TÊTE PRINCIPAL (Nouveau Design) --- */
+    .header-star {
+        background: #ffffff;
+        padding: 35px 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        margin-bottom: 35px;
+        position: relative;
+        overflow: hidden;
+        /* Dégradé de bordure basé sur les couleurs STAR */
+        border-left: 8px solid transparent;
+        border-image: linear-gradient(to bottom, #E3000F 50%, #009639 50%) 1;
+    }
+    
+    /* Effet de fond géométrique subtil */
     .header-star::before {
         content: '';
         position: absolute;
-        top: -50px;
-        right: -50px;
-        width: 250px;
-        height: 150px;
-        border: 12px solid #E3000F; /* Rouge STAR */
+        top: -80px;
+        right: -80px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(227,0,15,0.05) 0%, rgba(255,255,255,0) 70%);
         border-radius: 50%;
-        opacity: 0.08;
-        transform: rotate(-20deg);
+        pointer-events: none;
+    }
+    .header-star::after {
+        content: '';
+        position: absolute;
+        bottom: -80px;
+        left: 20%;
+        width: 250px;
+        height: 250px;
+        background: radial-gradient(circle, rgba(0,150,57,0.05) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
         pointer-events: none;
     }
 
     .header-title-star {
-        font-size: 2.2rem;
+        font-size: 2.4rem;
         font-weight: 900;
-        color: #E3000F; /* Rouge STAR */
+        color: #1a1a1a; /* Gris très foncé pour le contraste */
         margin: 0;
         line-height: 1.2;
         text-transform: uppercase;
         letter-spacing: -0.5px;
-        display: flex;
-        align-items: center;
         position: relative;
         z-index: 1;
+        display: inline-block;
     }
 
-    /* L'étoile à la fin du titre */
+    /* Mots clés en couleur STAR */
+    .text-red {
+        color: #E3000F;
+    }
+    .text-green {
+        color: #009639;
+    }
+
+    /* L'étoile animée et stylisée */
     .star-icon {
         color: #E3000F;
-        font-size: 1.9rem;
-        margin-left: 12px;
+        font-size: 2rem;
+        margin-left: 15px;
+        display: inline-block;
+        animation: spin-star 4s linear infinite;
+        text-shadow: 2px 2px 4px rgba(227,0,15,0.2);
+    }
+
+    @keyframes spin-star {
+        0% { transform: rotate(0deg) scale(1); }
+        50% { transform: rotate(180deg) scale(1.1); }
+        100% { transform: rotate(360deg) scale(1); }
+    }
+
+    /* --- TITRES ET SOUS-TITRES STREAMLIT --- */
+    h2, h3 {
+        color: #E3000F !important; /* Rouge STAR */
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 700 !important;
+    }
+    h2 {
+        border-bottom: 2px solid #009639; /* Ligne verte STAR */
+        padding-bottom: 10px;
+        margin-top: 20px;
+    }
+
+    /* --- BARRE LATÉRALE (SIDEBAR) --- */
+    [data-testid="stSidebar"] {
+        background-color: #f8f9fa;
+        border-right: 4px solid #009639; /* Bordure verte STAR */
+    }
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] h2, 
+    [data-testid="stSidebar"] h3 {
+        color: #009639 !important; /* Titres sidebar en Vert STAR */
+        border-bottom: none;
+    }
+
+    /* --- BOUTONS (Téléchargement, etc.) --- */
+    .stButton>button, .stDownloadButton>button {
+        background-color: #E3000F !important; /* Rouge STAR */
+        color: white !important;
+        border-radius: 5px;
+        border: none;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        transition: 0.3s;
+    }
+    .stButton>button:hover, .stDownloadButton>button:hover {
+        background-color: #b3000b !important; /* Rouge plus foncé */
+    }
+
+    /* --- EXPANDERS (Accordéons) --- */
+    .streamlit-expanderHeader {
+        background-color: #f0f4f8 !important;
+        color: #E3000F !important; /* Rouge STAR */
+        font-weight: 700;
+        border-left: 4px solid #009639;
+    }
+
+    /* --- ONGLETS (TABS) --- */
+    .stTabs [data-baseweb="tab-list"] button {
+        background-color: transparent;
+        color: #333;
+        font-weight: 600;
+    }
+    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+        color: #E3000F !important;
+        border-bottom-color: #E3000F !important;
+    }
+
+    /* --- MÉTRIQUES (KPI) --- */
+    [data-testid="stMetricValue"] {
+        color: #E3000F; /* Rouge STAR pour les chiffres */
+        font-weight: 800;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #009639; /* Vert STAR pour les labels */
+        font-weight: 600;
+    }
+
+    /* --- TABLEAUX DE DONNÉES --- */
+    .stDataFrame {
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
     }
     </style>
+    """,
+    unsafe_allow_html=True,
+)
 
+st.markdown(
+    """
     <div class="header-star">
         <div class="header-title-star">
-            Simulateur Stratégique & Optimisation Commerciale
+            <span class="text-red">Simulateur Stratégique</span> 
+            & 
+            <span class="text-green">Optimisation Commerciale</span>
             <span class="star-icon">★</span>
         </div>
     </div>
@@ -472,7 +588,7 @@ st.markdown(
     <style>
     .sim-container {
         background-color: #f0f4f8;
-        border-left: 6px solid #1e3d59;
+        border-left: 6px solid #E3000F; /* Rouge STAR */
         padding: 20px;
         border-radius: 8px;
         margin-bottom: 25px;
@@ -560,10 +676,11 @@ with g_cols[0]:
         df, x="Agence", y="Vol_2027_Par_CS", color="Région",
         title="Volume Moyen par CS par Agence vs Cible Nationale",
         labels={"Vol_2027_Par_CS": "Volume / CS (Hls)"},
+        color_discrete_sequence=px.colors.qualitative.Plotly
     )
-    fig_vol.add_hline(y=nat_vol_cs, line_dash="dash", line_color="red",
+    fig_vol.add_hline(y=nat_vol_cs, line_dash="dash", line_color="#E3000F",
                       annotation_text=f"Moyenne Nat ({nat_vol_cs:,.0f} Hls)")
-    fig_vol.add_hline(y=cible_vol_cs, line_dash="dot", line_color="green",
+    fig_vol.add_hline(y=cible_vol_cs, line_dash="dot", line_color="#009639",
                       annotation_text=f"Cible CS ({cible_vol_cs:,.0f} Hls)")
     fig_vol.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig_vol, use_container_width=True)
@@ -573,8 +690,9 @@ with g_cols[1]:
         df, x="Agence", y="PDV_Par_CS", color="Région",
         title="Charge PDV par CS par Agence vs Moyenne Nationale",
         labels={"PDV_Par_CS": "PDV / CS"},
+        color_discrete_sequence=px.colors.qualitative.Plotly
     )
-    fig_pdv.add_hline(y=nat_pdv_cs, line_dash="dash", line_color="red",
+    fig_pdv.add_hline(y=nat_pdv_cs, line_dash="dash", line_color="#E3000F",
                       annotation_text=f"Moyenne Nat ({nat_pdv_cs:.1f} PDV)")
     fig_pdv.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig_pdv, use_container_width=True)
