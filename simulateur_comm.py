@@ -13,7 +13,7 @@ st.set_page_config(
     page_title="Simulateur Commercial Madagascar", layout="wide"
 )
 
-st.title("🇲🇬 Simulateur Stratégique & Optimisation Commerciale - Madagascar")
+st.title("📈 Simulateur Stratégique & Optimisation Commerciale 🇲🇬")
 st.markdown(
     "Pilotage multiniveaux, analyse croisée CS & MV avec codes couleurs, "
     "simulation financière par agence, et plan de réaffectation régional."
