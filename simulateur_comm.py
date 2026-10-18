@@ -35,10 +35,11 @@ st.markdown(
         font-family: 'Montserrat', sans-serif;
     }
 
-    /* --- EN-TÊTE PRINCIPAL (Contenu principal) --- */
+    /* --- EN-TÊTE PRINCIPAL --- */
     .header-star {
         background: #ffffff;
-        padding: 25px 30px;
+        /* PADDING ÉQUILIBRÉ EN HAUT ET EN BAS */
+        padding: 25px 30px 25px 30px; 
         border-radius: 10px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.08);
         margin-bottom: 20px;
@@ -76,7 +77,7 @@ st.markdown(
         font-size: 2.2rem;
         font-weight: 900;
         color: #1a1a1a;
-        margin: 0;
+        margin: 0; /* Annule la marge par défaut */
         line-height: 1.2;
         text-transform: uppercase;
         letter-spacing: -0.5px;
@@ -104,7 +105,7 @@ st.markdown(
         100% { transform: rotate(360deg) scale(1); }
     }
 
-    /* --- SOUS-TITRES (STYLE CADRE GRIS/ROUGE COMPACT) --- */
+    /* --- SOUS-TITRES (CADRE GRIS/ROUGE) --- */
     h2, h3 {
         color: #E3000F !important;
         font-family: 'Montserrat', sans-serif;
@@ -134,19 +135,19 @@ st.markdown(
         border-right: 4px solid #009639;
     }
     
-    /* Logo Sidebar */
+    /* Logo Sidebar - Taille contrôlée */
     .sidebar-logo-container {
         text-align: center;
-        padding: 20px 10px 10px 10px;
-        margin-bottom: 20px;
+        padding: 10px 0;
+        margin-bottom: 10px;
         border-bottom: 1px solid #e0e0e0;
     }
-    .sidebar-logo-img {
-        max-width: 80%;
+    .sidebar-logo-container img {
+        max-width: 160px;
         height: auto;
-        display: inline-block;
     }
 
+    /* Titres de la sidebar */
     [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, 
     [data-testid="stSidebar"] h3 {
@@ -155,10 +156,12 @@ st.markdown(
         border: none;
         box-shadow: none;
         padding: 0;
-        margin-top: 5px;
-        margin-bottom: 5px;
+        margin-top: 10px;
+        margin-bottom: 10px;
         display: block;
-        white-space: normal;
+        white-space: nowrap;
+        font-size: 1.2rem !important;
+        line-height: 1.3;
     }
 
     /* --- BOUTONS --- */
@@ -194,7 +197,7 @@ st.markdown(
         border-bottom-color: #E3000F !important;
     }
 
-    /* --- MÉTRIQUES STANDARDS --- */
+    /* --- MÉTRIQUES --- */
     [data-testid="stMetricValue"] {
         color: #E3000F;
         font-size: 1.6rem !important;
@@ -477,9 +480,14 @@ df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
 # ==========================================
 # 4. SIDEBAR — LOGO ET PARAMÈTRES
 # ==========================================
-# Affichage du VRAI logo STAR depuis le fichier image du dépôt
-st.sidebar.image("star.png", use_container_width=True)
-st.sidebar.markdown("<hr style='margin: 10px 0; border: 0; border-top: 1px solid #e0e0e0;'>", unsafe_allow_html=True)
+st.sidebar.markdown(
+    """
+    <div class="sidebar-logo-container">
+        <img src="star.png" alt="Logo STAR">
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.sidebar.header("⚙️ Paramètres & Seuils d'Évaluation")
 
