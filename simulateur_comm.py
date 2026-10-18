@@ -82,9 +82,6 @@ st.markdown(
     .text-red {
         color: #E3000F;
     }
-    .text-green {
-        color: #009639;
-    }
 
     /* L'étoile animée et stylisée */
     .star-icon {
@@ -183,9 +180,7 @@ st.markdown(
     """
     <div class="header-star">
         <div class="header-title-star">
-            <span class="text-red">Simulateur Stratégique</span> 
-            & 
-            <span class="text-green">Optimisation Commerciale</span>
+            <span class="text-red">Simulateur Stratégique & Optimisation Commerciale</span>
             <span class="star-icon">★</span>
         </div>
     </div>
