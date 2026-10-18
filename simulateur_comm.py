@@ -40,7 +40,6 @@ st.markdown(
     }}
     .block-container {{
         padding-top: 1rem !important;
-        padding-bottom: 1rem !important;
     }}
     
     /* --- RÉDUCTION DE L'ESPACE EN HAUT DE LA SIDEBAR --- */
@@ -53,10 +52,10 @@ st.markdown(
         font-family: 'Montserrat', sans-serif;
     }}
 
-    /* --- EN-TÊTE PRINCIPAL --- */
+    /* --- EN-TÊTE PRINCIPAL (CENTRAGE PARFAIT) --- */
     .header-star {{
         background: #ffffff;
-        padding: 25px 30px 25px 30px; 
+        padding: 20px 30px; 
         border-radius: 10px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.08);
         margin-bottom: 20px;
@@ -65,6 +64,12 @@ st.markdown(
         overflow: hidden;
         border-left: 8px solid transparent;
         border-image: linear-gradient(to bottom, #E3000F 50%, #009639 50%) 1;
+        
+        /* Flexbox pour centrage vertical et horizontal */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80px;
     }}
     
     .header-star::before {{
@@ -95,12 +100,14 @@ st.markdown(
         font-weight: 900;
         color: #1a1a1a;
         margin: 0;
-        line-height: 1.2;
+        line-height: 1.1;
         text-transform: uppercase;
         letter-spacing: -0.5px;
         position: relative;
         z-index: 1;
-        display: inline-block;
+        display: flex;
+        align-items: center;
+        text-align: center;
     }}
 
     .text-red {{
@@ -246,7 +253,6 @@ st.markdown(
         padding-bottom: 0px !important;
     }}
     
-    /* Réduction des marges internes (titre + légende de la carte Plotly) */
     .js-plotly-plot .plotly .main-svg {{
         border-radius: 8px;
     }}
