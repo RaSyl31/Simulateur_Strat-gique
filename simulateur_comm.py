@@ -27,7 +27,7 @@ st.markdown(
         font-family: 'Montserrat', sans-serif;
     }
 
-    /* --- EN-TÊTE PRINCIPAL (Nouveau Design) --- */
+    /* --- EN-TÊTE PRINCIPAL --- */
     .header-star {
         background: #ffffff;
         padding: 35px 40px;
@@ -36,12 +36,10 @@ st.markdown(
         margin-bottom: 35px;
         position: relative;
         overflow: hidden;
-        /* Dégradé de bordure basé sur les couleurs STAR */
         border-left: 8px solid transparent;
         border-image: linear-gradient(to bottom, #E3000F 50%, #009639 50%) 1;
     }
     
-    /* Effet de fond géométrique subtil */
     .header-star::before {
         content: '';
         position: absolute;
@@ -68,7 +66,7 @@ st.markdown(
     .header-title-star {
         font-size: 2.4rem;
         font-weight: 900;
-        color: #1a1a1a; /* Gris très foncé pour le contraste */
+        color: #1a1a1a;
         margin: 0;
         line-height: 1.2;
         text-transform: uppercase;
@@ -78,12 +76,10 @@ st.markdown(
         display: inline-block;
     }
 
-    /* Mots clés en couleur STAR */
     .text-red {
         color: #E3000F;
     }
 
-    /* L'étoile animée et stylisée */
     .star-icon {
         color: #E3000F;
         font-size: 2rem;
@@ -101,12 +97,12 @@ st.markdown(
 
     /* --- TITRES ET SOUS-TITRES STREAMLIT --- */
     h2, h3 {
-        color: #E3000F !important; /* Rouge STAR */
+        color: #E3000F !important;
         font-family: 'Montserrat', sans-serif;
         font-weight: 700 !important;
     }
     h2 {
-        border-bottom: 2px solid #009639; /* Ligne verte STAR */
+        border-bottom: 2px solid #009639;
         padding-bottom: 10px;
         margin-top: 20px;
     }
@@ -114,18 +110,18 @@ st.markdown(
     /* --- BARRE LATÉRALE (SIDEBAR) --- */
     [data-testid="stSidebar"] {
         background-color: #f8f9fa;
-        border-right: 4px solid #009639; /* Bordure verte STAR */
+        border-right: 4px solid #009639;
     }
     [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, 
     [data-testid="stSidebar"] h3 {
-        color: #009639 !important; /* Titres sidebar en Vert STAR */
+        color: #009639 !important;
         border-bottom: none;
     }
 
-    /* --- BOUTONS (Téléchargement, etc.) --- */
+    /* --- BOUTONS --- */
     .stButton>button, .stDownloadButton>button {
-        background-color: #E3000F !important; /* Rouge STAR */
+        background-color: #E3000F !important;
         color: white !important;
         border-radius: 5px;
         border: none;
@@ -134,18 +130,18 @@ st.markdown(
         transition: 0.3s;
     }
     .stButton>button:hover, .stDownloadButton>button:hover {
-        background-color: #b3000b !important; /* Rouge plus foncé */
+        background-color: #b3000b !important;
     }
 
-    /* --- EXPANDERS (Accordéons) --- */
+    /* --- EXPANDERS --- */
     .streamlit-expanderHeader {
         background-color: #f0f4f8 !important;
-        color: #E3000F !important; /* Rouge STAR */
+        color: #E3000F !important;
         font-weight: 700;
         border-left: 4px solid #009639;
     }
 
-    /* --- ONGLETS (TABS) --- */
+    /* --- ONGLETS --- */
     .stTabs [data-baseweb="tab-list"] button {
         background-color: transparent;
         color: #333;
@@ -156,17 +152,22 @@ st.markdown(
         border-bottom-color: #E3000F !important;
     }
 
-    /* --- MÉTRIQUES (KPI) --- */
+    /* --- MÉTRIQUES (KPI) - CORRIGÉ POUR LA LISIBILITÉ --- */
     [data-testid="stMetricValue"] {
-        color: #E3000F; /* Rouge STAR pour les chiffres */
-        font-weight: 800;
+        color: #E3000F;
+        font-size: 1.6rem !important; /* Taille réduite pour éviter la coupure */
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     [data-testid="stMetricLabel"] {
-        color: #009639; /* Vert STAR pour les labels */
+        color: #009639;
+        font-size: 0.9rem !important;
         font-weight: 600;
     }
 
-    /* --- TABLEAUX DE DONNÉES --- */
+    /* --- TABLEAUX --- */
     .stDataFrame {
         border: 1px solid #e0e0e0;
         border-radius: 5px;
@@ -195,7 +196,6 @@ _HAS_SCATTER_MAPBOX = hasattr(px, "scatter_mapbox")
 
 
 def scatter_map_auto(df, **kwargs):
-    """Wrapper Plotly 5 (scatter_mapbox) / Plotly 6 (scatter_map)."""
     if _HAS_SCATTER_MAPBOX:
         return px.scatter_mapbox(df, **kwargs)
     if "mapbox_style" in kwargs:
@@ -204,10 +204,6 @@ def scatter_map_auto(df, **kwargs):
 
 
 def apply_marker_style(fig, size=6, opacity=0.75, line_width=None, line_color=None):
-    """
-    Applique un style de marqueur trace par trace, compatible Plotly 5 et 6.
-    Évite l'erreur `_perform_update` sur scatter_map / scatter_mapbox.
-    """
     for trace in fig.data:
         try:
             trace.marker.size = size
@@ -218,7 +214,6 @@ def apply_marker_style(fig, size=6, opacity=0.75, line_width=None, line_color=No
                 trace.marker.line.color = line_color
         except Exception:
             pass
-
 
 # ==========================================
 # 1. DONNÉES DE BASE
@@ -275,7 +270,6 @@ def load_base_data():
 
 df_raw = load_base_data()
 
-
 # ==========================================
 # 2. PARSING DMS (tolérant)
 # ==========================================
@@ -301,9 +295,8 @@ def _dms_to_dec_single(txt):
             lon = val
     return lat, lon
 
-
 # ==========================================
-# 3. CHARGEMENT ROBUSTE DU FICHIER GPS CLIENTS
+# 3. CHARGEMENT GPS
 # ==========================================
 def _find_gps_column(columns):
     alias = (
@@ -386,14 +379,12 @@ def load_gps_data(_uploaded_file=None):
     )
     return df_gps.reset_index(drop=True)
 
-
 # --- CHARGEMENT SYSTÉMATIQUE DU FICHIER GPS ---
 _uploaded = st.file_uploader(
     "Charger le fichier Excel des coordonnées GPS (Coord_GPS.xlsx)",
     type=["xlsx", "xls"],
 )
 df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
-
 
 # ==========================================
 # 4. SIDEBAR — PARAMÈTRES
@@ -443,7 +434,6 @@ df = df_raw.copy()
 df.loc[df["Agence"] == selected_agence_zb, "Vol_ZB_Inclut_Mois_Hls"] = sim_zb_vol_mois
 df.loc[df["Agence"] == selected_agence_zb, "PDV_Estimes_ZB"] = sim_zb_pdv
 
-
 # ==========================================
 # 5. CALCULS DYNAMIQUES
 # ==========================================
@@ -465,12 +455,12 @@ nat_pdv_mv = df["PDV_Total_Ajuste"].sum() / df["MV"].sum()
 
 st.subheader("🇲🇬 Indicateurs Clés de Référence (Moyenne Nationale)")
 kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-kpi1.metric("Volume Moyen / CS", f"{nat_vol_cs:,.0f} Hls", f"Cible: {cible_vol_cs:,.0f}")
-kpi2.metric("Volume Moyen / MV", f"{nat_vol_mv:,.0f} Hls")
-kpi3.metric("PDV Moyens / CS", f"{nat_pdv_cs:.1f} PDV")
-kpi4.metric("PDV Moyens / MV", f"{nat_pdv_mv:.1f} PDV")
+# Simplification du texte pour éviter les coupures "..."
+kpi1.metric("Volume Moyen / CS", f"{nat_vol_cs:,.0f}", f"Cible: {cible_vol_cs:,.0f}")
+kpi2.metric("Volume Moyen / MV", f"{nat_vol_mv:,.0f}")
+kpi3.metric("PDV Moyens / CS", f"{nat_pdv_cs:.1f}")
+kpi4.metric("PDV Moyens / MV", f"{nat_pdv_mv:.1f}")
 st.markdown("---")
-
 
 def get_statut_cs(pdv_cs):
     if pdv_cs >= seuil_surcharge_cs:
@@ -482,16 +472,13 @@ def get_statut_cs(pdv_cs):
     else:
         return "🟢 Équilibré CS"
 
-
 def get_statut_mv(vol_mv):
     if vol_mv >= seuil_surcharge_mv:
         return "🔴 Surcharge MV"
     return "🟢 Équilibré MV"
 
-
 df["Statut_CS"] = df["PDV_Par_CS"].apply(get_statut_cs)
 df["Statut_MV"] = df["Vol_2027_Par_MV"].apply(get_statut_mv)
-
 
 def color_status_cells(val):
     if "🔴" in str(val):
@@ -503,7 +490,6 @@ def color_status_cells(val):
     elif "🔵" in str(val):
         return "background-color: #cce5ff; color: #004085; font-weight: bold;"
     return ""
-
 
 # ==========================================
 # 6. TABLEAU RÉCAPITULATIF
@@ -530,7 +516,6 @@ df_recap = pd.DataFrame({
     "Statut MV": df["Statut_MV"],
 })
 
-
 def highlight_dynamic_cols(col):
     if col.name in [
         "Vol 2027 (Hls)", "Evol (+/- Hls)", "Evol (%)",
@@ -538,7 +523,6 @@ def highlight_dynamic_cols(col):
     ]:
         return ["background-color: #fffacd; font-weight: bold;"] * len(col)
     return [""] * len(col)
-
 
 st.dataframe(
     df_recap.style
@@ -565,7 +549,7 @@ st.markdown(
     <style>
     .sim-container {
         background-color: #f0f4f8;
-        border-left: 6px solid #E3000F; /* Rouge STAR */
+        border-left: 6px solid #E3000F;
         padding: 20px;
         border-radius: 8px;
         margin-bottom: 25px;
@@ -748,7 +732,6 @@ if not df_clients_gps.empty:
         horizontal=True,
     )
 
-    # ---------- Mode 1 : Agences ----------
     if map_mode == "Vue d'ensemble des Agences":
         fig_map = scatter_map_auto(
             df,
@@ -768,7 +751,6 @@ if not df_clients_gps.empty:
             title="Emplacement des Agences (taille ∝ Volume 2027)",
         )
 
-    # ---------- Mode 2 : Tous les PDV ----------
     else:
         ag_col = None
         for c in df_clients_gps.columns:
@@ -795,8 +777,6 @@ if not df_clients_gps.empty:
             )
             df_map_filtered = df_clients_gps.copy()
 
-        # ✅ Toutes les lignes affichées (pas d'échantillonnage)
-
         hover_cols = {}
         for c in ["Nom CS2", "Nom client", "Description activité",
                   "Activite", "CS"]:
@@ -811,7 +791,6 @@ if not df_clients_gps.empty:
                 color_col = c
                 break
 
-        # --- Couleur NOIR TRÈS NOIR pour "ZONE BLANCHE" ---
         color_discrete_map = None
         if color_col is not None:
             unique_vals = df_map_filtered[color_col].astype(str).unique()
@@ -820,7 +799,7 @@ if not df_clients_gps.empty:
             idx = 0
             for val in unique_vals:
                 if str(val).strip().upper() == "ZONE BLANCHE":
-                    color_discrete_map[val] = "#000000"  # noir très noir
+                    color_discrete_map[val] = "#000000"
                 else:
                     color_discrete_map[val] = default_palette[
                         idx % len(default_palette)
@@ -928,12 +907,12 @@ for _, row in df.iterrows():
         c2.metric("Ratio Agence", f"{row['Ratio_CS_MV']:.1f} CS / 1 MV")
         c3.metric(
             "Vol / MV",
-            f"{row['Vol_2027_Par_MV']:,.0f} Hls",
+            f"{row['Vol_2027_Par_MV']:,.0f}",
             f"vs Nat: {row['Vol_2027_Par_MV'] - nat_vol_mv:+,.0f}",
         )
         c4.metric(
             "Vol / CS",
-            f"{row['Vol_2027_Par_CS']:,.0f} Hls",
+            f"{row['Vol_2027_Par_CS']:,.0f}",
             f"vs Nat: {row['Vol_2027_Par_CS'] - nat_vol_cs:+,.0f}",
         )
 
