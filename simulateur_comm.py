@@ -95,16 +95,19 @@ st.markdown(
         100% { transform: rotate(360deg) scale(1); }
     }
 
-    /* --- TITRES ET SOUS-TITRES STREAMLIT --- */
+    /* --- SOUS-TITRES ENCADRÉS --- */
     h2, h3 {
         color: #E3000F !important;
         font-family: 'Montserrat', sans-serif;
         font-weight: 700 !important;
-    }
-    h2 {
-        border-bottom: 2px solid #009639;
-        padding-bottom: 10px;
-        margin-top: 20px;
+        background-color: #ffffff;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        border-left: 6px solid #009639; /* Bordure verte STAR */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        margin-top: 30px;
+        margin-bottom: 20px;
     }
 
     /* --- BARRE LATÉRALE (SIDEBAR) --- */
@@ -116,7 +119,11 @@ st.markdown(
     [data-testid="stSidebar"] h2, 
     [data-testid="stSidebar"] h3 {
         color: #009639 !important;
-        border-bottom: none;
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        border-left: none;
     }
 
     /* --- BOUTONS --- */
@@ -197,7 +204,6 @@ st.markdown(
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    /* Couleurs des bandeaux (Bleu foncé, Bleu clair, Rouge, Jaune) */
     .bg-dark-blue { background-color: #1f4e79; }
     .bg-light-blue { background-color: #5b9bd5; }
     .bg-red { background-color: #c00000; }
@@ -511,7 +517,7 @@ st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-header bg-dark-blue">Volume Moyen / CS</div>
             <div class="kpi-value">{nat_vol_cs:,.0f}</div>
-            <div class="kpi-sub"><span class="kpi-arrow-up">↑</span> Cible : {cible_vol_cs:,.0f}</div>
+            <div class="kpi-sub"><span class="kpi-arrow-up">↑</span> Cible : {cible_vol_cs:,.0f} Hecto</div>
         </div>
         <!-- Carte 2 -->
         <div class="kpi-card">
