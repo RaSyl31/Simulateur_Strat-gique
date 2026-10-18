@@ -13,10 +13,98 @@ st.set_page_config(
     page_title="Simulateur Commercial Madagascar", layout="wide"
 )
 
-st.title("📈 Simulateur Stratégique & Optimisation Commerciale 🇲🇬")
 st.markdown(
-    "Pilotage multiniveaux, analyse croisée CS & MV avec codes couleurs, "
-    "simulation financière par agence, et plan de réaffectation régional."
+    """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap');
+
+    .header-star {
+        font-family: 'Montserrat', sans-serif;
+        background: #ffffff;
+        padding: 25px 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+        border-left: 8px solid #009639; /* Vert STAR */
+    }
+
+    /* L'ellipse décorative en arrière-plan (rappel du logo) */
+    .header-star::before {
+        content: '';
+        position: absolute;
+        top: -50px;
+        right: -50px;
+        width: 250px;
+        height: 150px;
+        border: 15px solid #E3000F; /* Rouge STAR */
+        border-radius: 50%;
+        opacity: 0.05;
+        transform: rotate(-20deg);
+        pointer-events: none;
+    }
+
+    .header-title-star {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: #E3000F; /* Rouge STAR */
+        margin: 0 0 10px 0;
+        line-height: 1.1;
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* L'étoile à la fin du titre */
+    .star-icon {
+        color: #E3000F;
+        font-size: 1.8rem;
+        margin-left: 15px;
+        text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+    }
+
+    .header-subtitle-star {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #333333;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .header-subtitle-star strong {
+        color: #009639; /* Vert STAR */
+        font-weight: 800;
+    }
+
+    .header-tag-star {
+        display: inline-block;
+        margin-top: 15px;
+        padding: 6px 16px;
+        background: #009639;
+        color: white;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+    </style>
+
+    <div class="header-star">
+        <div class="header-title-star">
+            Simulateur Stratégique & Optimisation Commerciale
+            <span class="star-icon">★</span>
+        </div>
+        <div class="header-subtitle-star">
+            Pilotage multiniveaux, analyse croisée <strong>CS & MV</strong> avec codes couleurs,
+            simulation financière par agence, et plan de réaffectation régional.
+        </div>
+        <div class="header-tag-star">Madagascar</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
 # ==========================================
