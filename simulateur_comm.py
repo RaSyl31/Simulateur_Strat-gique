@@ -22,6 +22,14 @@ st.markdown(
     /* Importation des polices */
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap');
 
+    /* Réduction de l'espace vide en haut de la page */
+    [data-testid="stAppViewContainer"] > .main {
+        padding-top: 1rem !important;
+    }
+    .block-container {
+        padding-top: 1rem !important;
+    }
+
     /* Typographie globale */
     html, body, [class*="css"] {
         font-family: 'Montserrat', sans-serif;
@@ -33,7 +41,8 @@ st.markdown(
         padding: 35px 40px;
         border-radius: 10px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        margin-bottom: 35px;
+        margin-bottom: 25px; /* Marge réduite */
+        margin-top: 0px;     /* Pas de marge au dessus */
         position: relative;
         overflow: hidden;
         border-left: 8px solid transparent;
@@ -64,7 +73,7 @@ st.markdown(
     }
 
     .header-title-star {
-        font-size: 2.4rem;
+        font-size: 2.2rem;
         font-weight: 900;
         color: #1a1a1a;
         margin: 0;
@@ -95,21 +104,20 @@ st.markdown(
         100% { transform: rotate(360deg) scale(1); }
     }
 
-    /* --- SOUS-TITRES (STYLE DU CADRE DE SIMULATION) --- */
+    /* --- SOUS-TITRES (STYLE CADRE GRIS/ROUGE) --- */
     h2, h3 {
         color: #E3000F !important;
         font-family: 'Montserrat', sans-serif;
         font-weight: 700 !important;
-        background-color: #f0f4f8; /* Fond gris clair */
-        border-left: 6px solid #E3000F; /* Bordure gauche rouge */
+        background-color: #f0f4f8;
+        border-left: 6px solid #E3000F;
         padding: 15px 20px;
         border-radius: 8px;
         box-shadow: none;
         border-top: none; border-right: none; border-bottom: none;
-        margin-top: 30px;
+        margin-top: 20px;
         margin-bottom: 25px;
         
-        /* Centrage et gestion de ligne */
         display: flex;
         justify-content: center;
         align-items: center;
