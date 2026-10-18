@@ -319,16 +319,10 @@ def _find_gps_column(columns):
 
 @st.cache_data
 def load_gps_data(_uploaded_file=None):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    default_path = os.path.join(base_dir, "Coord_GPS.xlsx")
-
-    source = None
-    if os.path.exists(default_path):
-        source = default_path
-    elif _uploaded_file is not None:
-        source = _uploaded_file
-    else:
+    if _uploaded_file is None:
         return pd.DataFrame()
+
+    source = _uploaded_file
 
     try:
         xls = pd.ExcelFile(source)
@@ -393,24 +387,12 @@ def load_gps_data(_uploaded_file=None):
     return df_gps.reset_index(drop=True)
 
 
-# --- Chargement initial (uploader si absent du serveur) ---
-_base_dir = os.path.dirname(os.path.abspath(__file__))
-_default_exists = os.path.exists(os.path.join(_base_dir, "Coord_GPS.xlsx"))
-
-if not _default_exists:
-    st.info(
-        "📂 Le fichier `Coord_GPS.xlsx` n'est pas présent sur le serveur. "
-        "Vous pouvez l'uploader ci-dessous pour afficher les points de vente. "
-        "*(Le nom de la feuille est détecté automatiquement, plus besoin qu'elle "
-        "s'appelle `Feuil1`.)*"
-    )
-    _uploaded = st.file_uploader(
-        "Charger le fichier Excel des coordonnées GPS",
-        type=["xlsx", "xls"],
-    )
-    df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
-else:
-    df_clients_gps = load_gps_data()
+# --- CHARGEMENT SYSTÉMATIQUE DU FICHIER GPS ---
+_uploaded = st.file_uploader(
+    "Charger le fichier Excel des coordonnées GPS (Coord_GPS.xlsx)",
+    type=["xlsx", "xls"],
+)
+df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
 
 
 # ==========================================
