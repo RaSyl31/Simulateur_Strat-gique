@@ -141,32 +141,10 @@ st.markdown(
         margin-bottom: 20px;
         border-bottom: 1px solid #e0e0e0;
     }
-    .sidebar-logo-text {
-        font-family: 'Montserrat', sans-serif;
-        font-size: 2.2rem;
-        font-weight: 900;
-        color: #E3000F;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-    }
-    /* L'ellipse verte décorative autour du texte */
-    .sidebar-logo-text::before {
-        content: '';
-        position: absolute;
-        top: 0; left: -10px; right: 10px; bottom: 0;
-        border: 3px solid #009639;
-        border-radius: 50%;
-        transform: rotate(-10deg);
-        z-index: -1;
-        clip-path: polygon(0 50%, 100% 50%, 100% 100%, 0 100%);
-    }
-    .sidebar-logo-star {
-        color: #E3000F;
-        font-size: 2rem;
-        margin-left: 8px;
-        line-height: 1;
+    .sidebar-logo-img {
+        max-width: 80%;
+        height: auto;
+        display: inline-block;
     }
 
     [data-testid="stSidebar"] h1, 
@@ -497,19 +475,11 @@ _uploaded = st.file_uploader(
 df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
 
 # ==========================================
-# 4. SIDEBAR — PARAMÈTRES + LOGO
+# 4. SIDEBAR — LOGO ET PARAMÈTRES
 # ==========================================
-# Ajout du logo STAR en haut de la sidebar
-st.sidebar.markdown(
-    """
-    <div class="sidebar-logo-container">
-        <div class="sidebar-logo-text">
-            STAR <span class="sidebar-logo-star">★</span>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+# Affichage du VRAI logo STAR depuis le fichier image du dépôt
+st.sidebar.image("star.png", use_container_width=True)
+st.sidebar.markdown("<hr style='margin: 10px 0; border: 0; border-top: 1px solid #e0e0e0;'>", unsafe_allow_html=True)
 
 st.sidebar.header("⚙️ Paramètres & Seuils d'Évaluation")
 
