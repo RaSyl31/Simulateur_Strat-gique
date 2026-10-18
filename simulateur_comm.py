@@ -35,13 +35,13 @@ st.markdown(
         font-family: 'Montserrat', sans-serif;
     }
 
-    /* --- EN-TÊTE PRINCIPAL --- */
+    /* --- EN-TÊTE PRINCIPAL (Contenu principal) --- */
     .header-star {
         background: #ffffff;
-        padding: 25px 30px; /* Réduit */
+        padding: 25px 30px;
         border-radius: 10px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        margin-bottom: 20px; /* Réduit */
+        margin-bottom: 20px;
         margin-top: 0px;
         position: relative;
         overflow: hidden;
@@ -111,16 +111,12 @@ st.markdown(
         font-weight: 700 !important;
         background-color: #f0f4f8;
         border-left: 6px solid #E3000F;
-        
-        /* Réduction des espaces vides */
-        padding: 6px 15px !important; /* Espace intérieur réduit */
-        margin-top: 15px !important;   /* Espace extérieur haut réduit */
-        margin-bottom: 15px !important;/* Espace extérieur bas réduit */
-        
+        padding: 6px 15px !important;
+        margin-top: 15px !important;
+        margin-bottom: 15px !important;
         border-radius: 6px;
         box-shadow: none;
         border-top: none; border-right: none; border-bottom: none;
-        
         display: flex;
         justify-content: center;
         align-items: center;
@@ -137,6 +133,42 @@ st.markdown(
         background-color: #f8f9fa;
         border-right: 4px solid #009639;
     }
+    
+    /* Logo Sidebar */
+    .sidebar-logo-container {
+        text-align: center;
+        padding: 20px 10px 10px 10px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    .sidebar-logo-text {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: #E3000F;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    /* L'ellipse verte décorative autour du texte */
+    .sidebar-logo-text::before {
+        content: '';
+        position: absolute;
+        top: 0; left: -10px; right: 10px; bottom: 0;
+        border: 3px solid #009639;
+        border-radius: 50%;
+        transform: rotate(-10deg);
+        z-index: -1;
+        clip-path: polygon(0 50%, 100% 50%, 100% 100%, 0 100%);
+    }
+    .sidebar-logo-star {
+        color: #E3000F;
+        font-size: 2rem;
+        margin-left: 8px;
+        line-height: 1;
+    }
+
     [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, 
     [data-testid="stSidebar"] h3 {
@@ -208,7 +240,7 @@ st.markdown(
     .kpi-container {
         display: flex;
         gap: 15px;
-        margin-bottom: 20px; /* Réduit */
+        margin-bottom: 20px;
     }
     .kpi-card {
         flex: 1;
@@ -218,14 +250,14 @@ st.markdown(
         border: 1px solid #eaeaea;
         overflow: hidden;
         text-align: center;
-        padding-bottom: 15px; /* Réduit */
+        padding-bottom: 15px;
         position: relative;
     }
     .kpi-header {
         color: white;
         font-weight: 700;
         font-size: 0.85rem;
-        padding: 6px 5px; /* Réduit */
+        padding: 6px 5px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
@@ -235,10 +267,10 @@ st.markdown(
     .bg-yellow { background-color: #ffc000; color: #333; }
 
     .kpi-value {
-        font-size: 1.8rem; /* Réduit */
+        font-size: 1.8rem;
         font-weight: 800;
         color: #333333;
-        margin: 15px 0 5px 0; /* Réduit */
+        margin: 15px 0 5px 0;
         line-height: 1;
     }
     .kpi-sub {
@@ -465,8 +497,20 @@ _uploaded = st.file_uploader(
 df_clients_gps = load_gps_data(_uploaded) if _uploaded else pd.DataFrame()
 
 # ==========================================
-# 4. SIDEBAR — PARAMÈTRES
+# 4. SIDEBAR — PARAMÈTRES + LOGO
 # ==========================================
+# Ajout du logo STAR en haut de la sidebar
+st.sidebar.markdown(
+    """
+    <div class="sidebar-logo-container">
+        <div class="sidebar-logo-text">
+            STAR <span class="sidebar-logo-star">★</span>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.sidebar.header("⚙️ Paramètres & Seuils d'Évaluation")
 
 obj_visites_jour = st.sidebar.number_input(
