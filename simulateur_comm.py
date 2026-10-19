@@ -1017,15 +1017,12 @@ if not df_clients_gps.empty:
             title="Emplacement des Agences (taille ∝ Volume 2027)",
         )
         
-        # MODIFICATION : Mettre les agences en forme d'étoile rouge
-        fig_map.update_traces(
-            marker=dict(
-                symbol='star',
-                color='#E3000F',
-                size=16,
-                line=dict(width=1, color='white')
-            )
-        )
+        # CORRECTION : Boucler sur les traces pour éviter le crash de update_traces
+        for trace in fig_map.data:
+            trace.marker.symbol = 'star'
+            trace.marker.color = '#E3000F'
+            trace.marker.size = 16
+            trace.marker.line = dict(width=1, color='white')
 
     else:
         ag_col = None
@@ -1080,8 +1077,8 @@ if not df_clients_gps.empty:
             for val in unique_vals:
                 val_upper = str(val).strip().upper()
                 if val_upper in ["DISTRIBUTEUR STAR", "DISTRIBUTEURS STAR", "DS", "DISTRIBUTION STAR"]:
-                    color_discrete_map[val] = "#E3000F" # Rouge STAR
-                    symbol_map[val] = "star" # On l'affiche en étoile
+                    color_discrete_map[val] = "#E3000F"
+                    symbol_map[val] = "star"
                 elif val_upper == "ZONE BLANCHE":
                     color_discrete_map[val] = "#000000"
                     symbol_map[val] = "circle"
@@ -1109,13 +1106,13 @@ if not df_clients_gps.empty:
 
         fig_map = scatter_map_auto(df_map_filtered, **kwargs)
         
-        # Application des symboles
+        # CORRECTION : Boucler sur les traces pour appliquer les symboles
         if color_col is not None and symbol_map is not None:
             for trace in fig_map.data:
                 trace_name = trace.name
                 if trace_name in symbol_map:
                     trace.marker.symbol = symbol_map[trace_name]
-                # Si c'est le distributeur star, on le grossit un peu
+                
                 if trace_name and str(trace_name).strip().upper() in ["DISTRIBUTEUR STAR", "DISTRIBUTEURS STAR", "DS", "DISTRIBUTION STAR"]:
                     trace.marker.size = 14
 
