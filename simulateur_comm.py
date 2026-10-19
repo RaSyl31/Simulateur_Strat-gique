@@ -940,89 +940,88 @@ st.markdown('<div id="section-carte"></div>', unsafe_allow_html=True)
 
 st.subheader("🗺️ Carte Interactive : Agences & Points de Vente Détaillés")
 
-if not df_clients_gps.empty:
-    # Suppression du radio et affichage sur la même carte
+# Suppression du radio et affichage sur la même carte
 
-    ag_col = None
+ag_col = None
+if not df_clients_gps.empty:
     for c in df_clients_gps.columns:
         if str(c).strip().lower() in ("ag", "agence", "code_agence",
                                       "code agence", "id_agence"):
             ag_col = c
             break
 
-    if ag_col is not None:
-        selected_agence_map = st.selectbox(
-            "Filtrer par Agence :",
-            ["Toutes les agences"] + df["Agence"].tolist(),
-        )
-        df_map_filtered = df_clients_gps.copy()
-        if selected_agence_map != "Toutes les agences":
-            ag_id = str(int(selected_agence_map.split("-")[0])).zfill(2)
-            df_map_filtered = df_map_filtered[
-                df_map_filtered[ag_col].astype(str).str.zfill(2) == ag_id
-            ]
-    else:
-        st.info(
-            "ℹ️ Colonne `Ag` absente du fichier — affichage de tous les "
-            "points de vente."
-        )
-        df_map_filtered = df_clients_gps.copy()
-
-    hover_cols = {}
-    for c in ["Nom CS2", "Nom client", "Description activité",
-              "Activite", "CS"]:
-        if c in df_map_filtered.columns:
-            hover_cols[c] = True
-    hover_cols["Lat"] = False
-    hover_cols["Lon"] = False
-
-    color_col = None
-    for c in ["Description activité", "Activite", "Description activite"]:
-        if c in df_map_filtered.columns:
-            color_col = c
-            break
-
-    color_discrete_map = None
-    symbol_map = None
-    
-    # Configuration des couleurs et symboles pour les PDV
-    if color_col is not None:
-        unique_vals = df_map_filtered[color_col].astype(str).unique()
-        default_palette = px.colors.qualitative.Plotly
-        color_discrete_map = {}
-        symbol_map = {}
-        idx = 0
-        for val in unique_vals:
-            val_upper = str(val).strip().upper()
-            if val_upper in ["DISTRIBUTEUR STAR", "DISTRIBUTEURS STAR", "DS", "DISTRIBUTION STAR"]:
-                color_discrete_map[val] = "#E3000F"
-                symbol_map[val] = "star"
-            elif val_upper == "ZONE BLANCHE":
-                color_discrete_map[val] = "#000000"
-                symbol_map[val] = "circle"
-            else:
-                color_discrete_map[val] = default_palette[
-                    idx % len(default_palette)
-                ]
-                symbol_map[val] = "circle"
-                idx += 1
-
-    # Création de la carte de base (PDV)
-    kwargs = dict(
-        lat="Lat", lon="Lon",
-        hover_name="Nom client" if "Nom client" in df_map_filtered.columns else None,
-        hover_data=hover_cols,
-        zoom=5.5,
-        center={"lat": -18.79, "lon": 46.85},
-        mapbox_style="open-street-map",
-        height=650,
-        title="Cartographie des Points de Vente & Agences",
+if ag_col is not None:
+    selected_agence_map = st.selectbox(
+        "Filtrer par Agence :",
+        ["Toutes les agences"] + df["Agence"].tolist(),
     )
-    if color_col is not None:
-        kwargs["color"] = color_col
-        if color_discrete_map is not None:
-            kwargs["color_discrete_map"] = color_discrete_map
+    df_map_filtered = df_clients_gps.copy()
+    if selected_agence_map != "Toutes les agences":
+        ag_id = str(int(selected_agence_map.split("-")[0])).zfill(2)
+        df_map_filtered = df_map_filtered[
+            df_map_filtered[ag_col].astype(str).str.zfill(2) == ag_id
+        ]
+else:
+    selected_agence_map = "Toutes les agences"
+    df_map_filtered = df_clients_gps.copy()
 
+hover_cols = {}
+for c in ["Nom CS2", "Nom client", "Description activité",
+          "Activite", "CS"]:
+    if c in df_map_filtered.columns:
+        hover_cols[c] = True
+hover_cols["Lat"] = False
+hover_cols["Lon"] = False
+
+color_col = None
+for c in ["Description activité", "Activite", "Description activite"]:
+    if c in df_map_filtered.columns:
+        color_col = c
+        break
+
+color_discrete_map = None
+symbol_map = None
+
+# Configuration des couleurs et symboles pour les PDV
+if color_col is not None:
+    unique_vals = df_map_filtered[color_col].astype(str).unique()
+    default_palette = px.colors.qualitative.Plotly
+    color_discrete_map = {}
+    symbol_map = {}
+    idx = 0
+    for val in unique_vals:
+        val_upper = str(val).strip().upper()
+        if val_upper in ["DISTRIBUTEUR STAR", "DISTRIBUTEURS STAR", "DS", "DISTRIBUTION STAR"]:
+            color_discrete_map[val] = "#E3000F"
+            symbol_map[val] = "star"
+        elif val_upper == "ZONE BLANCHE":
+            color_discrete_map[val] = "#000000"
+            symbol_map[val] = "circle"
+        else:
+            color_discrete_map[val] = default_palette[
+                idx % len(default_palette)
+            ]
+            symbol_map[val] = "circle"
+            idx += 1
+
+# Création de la carte de base (PDV)
+kwargs = dict(
+    lat="Lat", lon="Lon",
+    hover_name="Nom client" if "Nom client" in df_map_filtered.columns else None,
+    hover_data=hover_cols,
+    zoom=5.5,
+    center={"lat": -18.79, "lon": 46.85},
+    mapbox_style="open-street-map",
+    height=650,
+    title="Cartographie des Points de Vente & Agences",
+)
+if color_col is not None:
+    kwargs["color"] = color_col
+    if color_discrete_map is not None:
+        kwargs["color_discrete_map"] = color_discrete_map
+
+# On initialise la carte (même si pas de PDV, on la crée pour les agences)
+if not df_map_filtered.empty:
     fig_map = scatter_map_auto(df_map_filtered, **kwargs)
     
     # Application des symboles pour les PDV
@@ -1036,44 +1035,51 @@ if not df_clients_gps.empty:
                 trace.marker.size = 14
 
     apply_marker_style(fig_map, size=6, opacity=0.75)
-    
-    # --- AJOUT DES AGENCES SUR LA MÊME CARTE ---
-    # Filtrage des agences si un filtre d'agence spécifique est sélectionné
-    df_agences = df.copy()
-    if selected_agence_map != "Toutes les agences":
-        df_agences = df_agences[df_agences["Agence"] == selected_agence_map]
-
-    if not df_agences.empty:
-        fig_agences = scatter_map_auto(
-            df_agences,
-            lat="Lat", lon="Lon",
-            hover_name="Agence",
-            hover_data={
-                "Vol_2027_Hls": ":,.0f",
-                "Statut_CS": True, "Statut_MV": True,
-                "Lat": False, "Lon": False,
-            },
-            mapbox_style="open-street-map",
-        )
-        
-        # Personnalisation de l'apparence des agences (icône Entrepôt/Usine)
-        for trace in fig_agences.data:
-            trace.marker.symbol = "🏭" # Symbole Entrepôt
-            trace.marker.color = "#000000" # Couleur noire
-            trace.marker.size = 20 # Taille plus grande
-
-        # Fusion de la trace des agences avec la carte existante
-        for trace_ag in fig_agences.data:
-            fig_map.add_trace(trace_ag)
-
-    st.caption(f"📍 {len(df_clients_gps):,} points de vente chargés.")
-    st.plotly_chart(fig_map, use_container_width=True)
-
 else:
-    st.warning(
-        "⚠️ Aucune donnée GPS disponible. Uploadez le fichier Excel "
-        "pour afficher les points de vente."
+    # Si aucun PDV, on crée une carte vide centrée sur Mada
+    fig_map = px.scatter_mapbox(
+        pd.DataFrame({"Lat": [-18.79], "Lon": [46.85]}), 
+        lat="Lat", lon="Lon",
+        zoom=5.5,
+        center={"lat": -18.79, "lon": 46.85},
+        mapbox_style="open-street-map",
+        height=650,
+        title="Cartographie des Points de Vente & Agences",
     )
+    fig_map.data = [] # On vide la trace pour ne pas afficher de point invisible
+
+# --- AJOUT DES AGENCES SUR LA MÊME CARTE (INDÉPENDAMMENT DE L'UPLOAD) ---
+# Filtrage des agences si un filtre d'agence spécifique est sélectionné
+df_agences = df.copy()
+if selected_agence_map != "Toutes les agences":
+    df_agences = df_agences[df_agences["Agence"] == selected_agence_map]
+
+if not df_agences.empty:
+    fig_agences = scatter_map_auto(
+        df_agences,
+        lat="Lat", lon="Lon",
+        hover_name="Agence",
+        hover_data={
+            "Vol_2027_Hls": ":,.0f",
+            "Statut_CS": True, "Statut_MV": True,
+            "Lat": False, "Lon": False,
+        },
+        mapbox_style="open-street-map",
+    )
+    
+    # Personnalisation de l'apparence des agences
+    for trace in fig_agences.data:
+        trace.marker.symbol = "square" # Symbole Entrepôt (carré)
+        trace.marker.color = "#000000" # Couleur noire
+        trace.marker.size = 14 # Taille 
+        trace.name = "Agences (Entrepôt)" # Nom de la légende
+
+    # Fusion de la trace des agences avec la carte existante
+    for trace_ag in fig_agences.data:
+        fig_map.add_trace(trace_ag)
+
+st.caption(f"📍 {len(df_clients_gps):,} points de vente chargés.")
+st.plotly_chart(fig_map, use_container_width=True)
 
 # ==========================================
 # 11. RECOMMANDATIONS & EXPORT
