@@ -291,7 +291,7 @@ st.markdown(
     .bg-dark-blue {{ background-color: #1f4e79; }}
     .bg-light-blue {{ background-color: #5b9bd5; }}
     .bg-red {{ background-color: #c00000; }}
-    .bg-light-red {{ background-color: #ff7b7b; color: #333; }} /* Rouge clair */
+    .bg-light-red {{ background-color: #ff7b7b; color: #ffffff; }} /* Rouge clair avec texte blanc */
 
     .kpi-value {{
         font-size: 1.8rem;
