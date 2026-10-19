@@ -57,10 +57,11 @@ st.markdown(
         font-family: 'Montserrat', sans-serif;
     }}
 
-    /* --- EN-TÊTE PRINCIPAL (CENTRAGE VERTICAL) --- */
+    /* ==========================================
+       EN-TÊTE PRINCIPAL (CENTRAGE VERTICAL STRICT)
+       ========================================== */
     .header-star {{
         background: #ffffff;
-        padding: 25px 30px; 
         border-radius: 10px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.08);
         margin-bottom: 20px;
@@ -70,10 +71,13 @@ st.markdown(
         border-left: 8px solid transparent;
         border-image: linear-gradient(to bottom, #E3000F 50%, #009639 50%) 1;
         
+        /* Centrage vertical strict du contenu */
         display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 90px;
+        align-items: center;      /* Centre verticalement */
+        justify-content: center;  /* Centre horizontalement */
+        
+        /* Hauteur fixe pour garantir le centrage */
+        height: 100px; 
     }}
     
     .header-star::before {{
@@ -103,20 +107,21 @@ st.markdown(
         font-size: 2.2rem;
         font-weight: 900;
         color: #1a1a1a;
-        margin: 0;
-        line-height: 1.1;
+        margin: 0; /* Important : pas de marge */
+        padding: 0;
+        line-height: 1; /* Empêche un décalage vertical dû à l'interligne */
         text-transform: uppercase;
         letter-spacing: -0.5px;
         position: relative;
         z-index: 1;
         text-align: center;
-        width: 100%;
     }}
 
     .text-red {{
         color: #E3000F;
     }}
 
+    /* L'étoile en absolu pour ne pas casser le centrage */
     .star-icon {{
         position: absolute;
         right: 30px;
@@ -126,6 +131,7 @@ st.markdown(
         font-size: 2.2rem;
         animation: spin-star 4s linear infinite;
         text-shadow: 2px 2px 4px rgba(227,0,15,0.2);
+        z-index: 1;
     }}
 
     @keyframes spin-star {{
