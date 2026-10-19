@@ -1075,8 +1075,38 @@ st.markdown('<div id="section-carte"></div>', unsafe_allow_html=True)
 
 st.subheader("🗺️ Carte Interactive : Agences & Points de Vente Détaillés")
 
-# Suppression du radio et affichage sur la même carte
+# --- BARRE DE FILTRES CARTE (RÉGION ET AGENCE) ---
+st.markdown("### 🔍 Filtrer l'affichage de la carte")
+filter_cols_map = st.columns([1.5, 1.5, 1])
 
+# 1. Filtre Région
+list_regions = ["Toutes les régions"] + sorted(df["Région"].unique().tolist())
+selected_region_map = filter_cols_map[0].selectbox(
+    "Région", list_regions, key="map_filter_region"
+)
+
+# 2. Filtre Agence (dépendant de la région sélectionnée)
+if selected_region_map != "Toutes les régions":
+    available_agences_map = sorted(
+        df[df["Région"] == selected_region_map]["Agence"].unique().tolist()
+    )
+else:
+    available_agences_map = sorted(df["Agence"].unique().tolist())
+
+list_agences_map = ["Toutes les agences"] + available_agences_map
+selected_agence_map = filter_cols_map[1].selectbox(
+    "Agence", list_agences_map, key="map_filter_agence"
+)
+
+# 3. Bouton de réinitialisation
+with filter_cols_map[2]:
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🔄 Tout afficher", use_container_width=True, key="map_reset_filters"):
+        st.session_state["map_filter_region"] = "Toutes les régions"
+        st.session_state["map_filter_agence"] = "Toutes les agences"
+        st.rerun()
+
+# --- TRAITEMENT DES DONNÉES SELON LES FILTRES ---
 ag_col = None
 if not df_clients_gps.empty:
     for c in df_clients_gps.columns:
@@ -1085,21 +1115,24 @@ if not df_clients_gps.empty:
             ag_col = c
             break
 
-if ag_col is not None:
-    selected_agence_map = st.selectbox(
-        "Filtrer par Agence :",
-        ["Toutes les agences"] + df["Agence"].tolist(),
-    )
-    df_map_filtered = df_clients_gps.copy()
+# Filtrage des PDV
+df_map_filtered = df_clients_gps.copy()
+if not df_map_filtered.empty and ag_col is not None:
+    # Si une agence spécifique est sélectionnée
     if selected_agence_map != "Toutes les agences":
         ag_id = str(int(selected_agence_map.split("-")[0])).zfill(2)
         df_map_filtered = df_map_filtered[
             df_map_filtered[ag_col].astype(str).str.zfill(2) == ag_id
         ]
-else:
-    selected_agence_map = "Toutes les agences"
-    df_map_filtered = df_clients_gps.copy()
+    # Sinon si une région est sélectionnée
+    elif selected_region_map != "Toutes les régions":
+        agences_region = df[df["Région"] == selected_region_map]["Agence"].tolist()
+        ids_region = [str(int(a.split("-")[0])).zfill(2) for a in agences_region]
+        df_map_filtered = df_map_filtered[
+            df_map_filtered[ag_col].astype(str).str.zfill(2).isin(ids_region)
+        ]
 
+# --- PRÉPARATION DES COULEURS/SYMBOLES PDV ---
 hover_cols = {}
 for c in ["Nom CS2", "Nom client", "Description activité",
           "Activite", "CS"]:
@@ -1117,7 +1150,6 @@ for c in ["Description activité", "Activite", "Description activite"]:
 color_discrete_map = None
 symbol_map = None
 
-# Configuration des couleurs et symboles pour les PDV
 if color_col is not None:
     unique_vals = df_map_filtered[color_col].astype(str).unique()
     default_palette = px.colors.qualitative.Plotly
@@ -1139,7 +1171,7 @@ if color_col is not None:
             symbol_map[val] = "circle"
             idx += 1
 
-# Création de la carte de base (PDV)
+# --- CRÉATION DE LA CARTE (PDV) ---
 kwargs = dict(
     lat="Lat", lon="Lon",
     hover_name="Nom client" if "Nom client" in df_map_filtered.columns else None,
@@ -1181,13 +1213,16 @@ else:
         height=650,
         title="Cartographie des Points de Vente & Agences",
     )
-    fig_map.data = []  # On vide la trace pour ne pas afficher de point invisible
+    fig_map.data = []
 
-# --- AJOUT DES AGENCES SUR LA MÊME CARTE (INDÉPENDAMMENT DE L'UPLOAD) ---
-# Filtrage des agences si un filtre d'agence spécifique est sélectionné
+# --- AJOUT DES AGENCES (FILTRÉES) ---
 df_agences = df.copy()
+
+# Application des filtres sur les agences
 if selected_agence_map != "Toutes les agences":
     df_agences = df_agences[df_agences["Agence"] == selected_agence_map]
+elif selected_region_map != "Toutes les régions":
+    df_agences = df_agences[df_agences["Région"] == selected_region_map]
 
 if not df_agences.empty:
     fig_agences = scatter_map_auto(
@@ -1204,16 +1239,15 @@ if not df_agences.empty:
     
     # Personnalisation de l'apparence des agences
     for trace in fig_agences.data:
-        trace.marker.symbol = "square"  # Symbole Entrepôt (carré)
-        trace.marker.color = "#FF0000"  # Couleur rouge
-        trace.marker.size = 14  # Taille
-        trace.name = "Agences (Entrepôt)"  # Nom de la légende
+        trace.marker.symbol = "square"
+        trace.marker.color = "#FF0000"
+        trace.marker.size = 14
+        trace.name = "Agences (Entrepôt)"
 
-    # Fusion de la trace des agences avec la carte existante
     for trace_ag in fig_agences.data:
         fig_map.add_trace(trace_ag)
 
-st.caption(f"📍 {len(df_clients_gps):,} points de vente chargés.")
+st.caption(f"📍 {len(df_map_filtered):,} points de vente affichés sur {len(df_clients_gps):,} chargés.")
 st.plotly_chart(fig_map, use_container_width=True)
 
 # ==========================================
@@ -1415,8 +1449,8 @@ for _, row in df.iterrows():
 df_recap_final = pd.DataFrame(recap_lignes)
 st.table(df_recap_final)
 
-# --- Export du tableau récapitulatif stratégique ---
-dl_col1, dl_col2, _ = st.columns([1, 1, 3])
+# --- Export du tableau récapitulatif stratégique (Excel UNIQUEMENT) ---
+dl_col1, _ = st.columns([1, 3])
 
 # Export Excel (.xlsx)
 xlsx_buffer = io.BytesIO()
@@ -1426,7 +1460,8 @@ with pd.ExcelWriter(xlsx_buffer, engine="openpyxl") as writer:
     for col_cells in ws.columns:
         max_len = max(len(str(c.value)) if c.value is not None else 0 for c in col_cells)
         ws.column_dimensions[col_cells[0].column_letter].width = min(max_len + 2, 60)
-dl_col2.download_button(
+
+dl_col1.download_button(
     label="📥 Télécharger (Excel)",
     data=xlsx_buffer.getvalue(),
     file_name="recapitulatif_strategique_recrutement_transferts.xlsx",
