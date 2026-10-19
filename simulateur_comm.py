@@ -342,15 +342,11 @@ def scatter_map_auto(df, **kwargs):
         kwargs["map_style"] = kwargs.pop("mapbox_style")
     return px.scatter_map(df, **kwargs)
 
-def apply_marker_style(fig, size=6, opacity=0.75, line_width=None, line_color=None):
+def apply_marker_style(fig, size=6, opacity=0.75):
     for trace in fig.data:
         try:
             trace.marker.size = size
             trace.marker.opacity = opacity
-            if line_width is not None:
-                trace.marker.line.width = line_width
-            if line_color is not None:
-                trace.marker.line.color = line_color
         except Exception:
             pass
 
@@ -1017,13 +1013,15 @@ if not df_clients_gps.empty:
             title="Emplacement des Agences (taille ∝ Volume 2027)",
         )
         
-        # CORRECTION : Boucler sur les traces pour éviter le crash de update_traces
-        for trace in fig_map.data:
-            trace.marker.symbol = 'star'
-            trace.marker.color = '#E3000F'
-            trace.marker.size = 16
-            trace.marker.line.width = 1
-            trace.marker.line.color = 'white'
+        # CORRECTION : Utilisation de update_traces
+        fig_map.update_traces(
+            marker=dict(
+                symbol='star', 
+                color='#E3000F',
+                size=16,
+                line=dict(width=1, color='white')
+            )
+        )
 
     else:
         ag_col = None
@@ -1107,7 +1105,7 @@ if not df_clients_gps.empty:
 
         fig_map = scatter_map_auto(df_map_filtered, **kwargs)
         
-        # CORRECTION : Boucler sur les traces pour appliquer les symboles
+        # CORRECTION : Utilisation de update_traces avec selecteurs si besoin
         if color_col is not None and symbol_map is not None:
             for trace in fig_map.data:
                 trace_name = trace.name
