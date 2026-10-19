@@ -837,39 +837,174 @@ if st.session_state.simulations_sauvegardees:
 
 
 # ==========================================
-# 8. GRAPHIQUES (COULEURS VIVES)
+# 8. GRAPHIQUES (COULEURS VIVES) + COMPARAISON AVANT / APRÈS
 # ==========================================
 st.markdown("---")
 st.subheader("📈 Visualisation Interactive : Agence vs Moyenne Nationale")
 
 VIBRANT_COLORS = ["#007bff", "#6f42c1", "#fd7e14", "#17a2b8", "#e83e8c"]
 
-g_cols = st.columns(2)
-with g_cols[0]:
-    fig_vol = px.bar(
-        df, x="Agence", y="Vol_2027_Par_CS", color="Région",
-        title="Volume Moyen par CS par Agence vs Cible Nationale",
-        labels={"Vol_2027_Par_CS": "Volume / CS (Hls)"},
-        color_discrete_sequence=VIBRANT_COLORS
-    )
-    fig_vol.add_hline(y=nat_vol_cs, line_dash="dash", line_color="#343a40",
-                      annotation_text=f"Moyenne Nat ({nat_vol_cs:,.0f} Hls)")
-    fig_vol.add_hline(y=cible_vol_cs, line_dash="dot", line_color="#fd7e14",
-                      annotation_text=f"Cible CS ({cible_vol_cs:,.0f} Hls)")
-    fig_vol.update_layout(xaxis_tickangle=-45)
-    st.plotly_chart(fig_vol, use_container_width=True)
+# --- Simulations enregistrées (uniquement celles qui modifient quelque chose) ---
+sims_actives = {
+    ag: m for ag, m in st.session_state.simulations_sauvegardees.items()
+    if m["delta_cs"] != 0 or m["delta_mv"] != 0
+}
 
-with g_cols[1]:
-    fig_pdv = px.bar(
-        df, x="Agence", y="PDV_Par_CS", color="Région",
-        title="Charge PDV par CS par Agence vs Moyenne Nationale",
-        labels={"PDV_Par_CS": "PDV / CS"},
-        color_discrete_sequence=VIBRANT_COLORS
+comparer = st.toggle(
+    "🔄 Comparer Avant / Après simulation",
+    value=False,
+    disabled=not sims_actives,
+    key="toggle_compare_graphs",
+    help="Affiche sur les graphiques l'impact des simulations enregistrées "
+         "dans le module « Simulation Avant / Après ».",
+)
+if not sims_actives:
+    st.caption(
+        "ℹ️ Enregistrez au moins une simulation (bouton 💾 plus haut) "
+        "pour activer la comparaison."
     )
-    fig_pdv.add_hline(y=nat_pdv_cs, line_dash="dash", line_color="#343a40",
-                      annotation_text=f"Moyenne Nat ({nat_pdv_cs:.1f} PDV)")
-    fig_pdv.update_layout(xaxis_tickangle=-45)
-    st.plotly_chart(fig_pdv, use_container_width=True)
+
+# --- Construction du scénario « Après » ---
+df_apres = df.copy()
+df_apres["Total_CS_Propose"] = [
+    max(1, r["Total_CS_Propose"] + sims_actives.get(r["Agence"], {}).get("delta_cs", 0))
+    for _, r in df.iterrows()
+]
+df_apres["MV"] = [
+    max(1, r["MV"] + sims_actives.get(r["Agence"], {}).get("delta_mv", 0))
+    for _, r in df.iterrows()
+]
+df_apres["Vol_2027_Par_CS"] = df_apres["Vol_2027_Hls"] / df_apres["Total_CS_Propose"]
+df_apres["PDV_Par_CS"] = df_apres["PDV_Total_Ajuste"] / df_apres["Total_CS_Propose"]
+
+nat_vol_cs_apres = df_apres["Vol_2027_Hls"].sum() / df_apres["Total_CS_Propose"].sum()
+nat_pdv_cs_apres = df_apres["PDV_Total_Ajuste"].sum() / df_apres["Total_CS_Propose"].sum()
+
+g_cols = st.columns(2)
+
+if not comparer:
+    # ---------- Vue standard ----------
+    with g_cols[0]:
+        fig_vol = px.bar(
+            df, x="Agence", y="Vol_2027_Par_CS", color="Région",
+            title="Volume Moyen par CS par Agence vs Cible Nationale",
+            labels={"Vol_2027_Par_CS": "Volume / CS (Hls)"},
+            color_discrete_sequence=VIBRANT_COLORS,
+        )
+        fig_vol.add_hline(
+            y=nat_vol_cs, line_dash="dash", line_color="#343a40",
+            annotation_text=f"Moyenne Nat ({nat_vol_cs:,.0f} Hls)",
+            annotation_position="top left",
+        )
+        fig_vol.add_hline(
+            y=cible_vol_cs, line_dash="dot", line_color="#fd7e14",
+            annotation_text=f"Cible CS ({cible_vol_cs:,.0f} Hls)",
+            annotation_position="bottom right",
+        )
+        fig_vol.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_vol, use_container_width=True)
+
+    with g_cols[1]:
+        fig_pdv = px.bar(
+            df, x="Agence", y="PDV_Par_CS", color="Région",
+            title="Charge PDV par CS par Agence vs Moyenne Nationale",
+            labels={"PDV_Par_CS": "PDV / CS"},
+            color_discrete_sequence=VIBRANT_COLORS,
+        )
+        fig_pdv.add_hline(
+            y=nat_pdv_cs, line_dash="dash", line_color="#343a40",
+            annotation_text=f"Moyenne Nat ({nat_pdv_cs:.1f} PDV)",
+            annotation_position="top left",
+        )
+        fig_pdv.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_pdv, use_container_width=True)
+
+else:
+    # ---------- Vue comparative Avant / Après ----------
+    d_avant = df[["Agence", "Région", "Vol_2027_Par_CS", "PDV_Par_CS"]].copy()
+    d_avant["Scénario"] = "Avant"
+    d_apres = df_apres[["Agence", "Région", "Vol_2027_Par_CS", "PDV_Par_CS"]].copy()
+    d_apres["Scénario"] = "Après (simulation)"
+    df_cmp = pd.concat([d_avant, d_apres], ignore_index=True)
+
+    COLOR_SCEN = {"Avant": "#9aa5b1", "Après (simulation)": "#E3000F"}
+
+    with g_cols[0]:
+        fig_vol_c = px.bar(
+            df_cmp, x="Agence", y="Vol_2027_Par_CS", color="Scénario",
+            barmode="group", color_discrete_map=COLOR_SCEN,
+            title="Volume par CS : Avant vs Après simulation",
+            labels={"Vol_2027_Par_CS": "Volume / CS (Hls)"},
+            hover_data={"Région": True},
+        )
+        fig_vol_c.add_hline(
+            y=nat_vol_cs, line_dash="dash", line_color="#6c757d",
+            annotation_text=f"Moy. Nat Avant ({nat_vol_cs:,.0f})",
+            annotation_position="top left",
+        )
+        fig_vol_c.add_hline(
+            y=nat_vol_cs_apres, line_dash="dash", line_color="#E3000F",
+            annotation_text=f"Moy. Nat Après ({nat_vol_cs_apres:,.0f})",
+            annotation_position="top right",
+        )
+        fig_vol_c.add_hline(
+            y=cible_vol_cs, line_dash="dot", line_color="#fd7e14",
+            annotation_text=f"Cible CS ({cible_vol_cs:,.0f})",
+            annotation_position="bottom right",
+        )
+        fig_vol_c.update_layout(xaxis_tickangle=-45, legend_title_text="")
+        st.plotly_chart(fig_vol_c, use_container_width=True)
+
+    with g_cols[1]:
+        fig_pdv_c = px.bar(
+            df_cmp, x="Agence", y="PDV_Par_CS", color="Scénario",
+            barmode="group", color_discrete_map=COLOR_SCEN,
+            title="Charge PDV par CS : Avant vs Après simulation",
+            labels={"PDV_Par_CS": "PDV / CS"},
+            hover_data={"Région": True},
+        )
+        fig_pdv_c.add_hline(
+            y=nat_pdv_cs, line_dash="dash", line_color="#6c757d",
+            annotation_text=f"Moy. Nat Avant ({nat_pdv_cs:.1f})",
+            annotation_position="top left",
+        )
+        fig_pdv_c.add_hline(
+            y=nat_pdv_cs_apres, line_dash="dash", line_color="#E3000F",
+            annotation_text=f"Moy. Nat Après ({nat_pdv_cs_apres:.1f})",
+            annotation_position="top right",
+        )
+        fig_pdv_c.add_hline(
+            y=seuil_surcharge_cs, line_dash="dot", line_color="#b3000b",
+            annotation_text=f"Seuil surcharge ({seuil_surcharge_cs})",
+            annotation_position="bottom right",
+        )
+        fig_pdv_c.update_layout(xaxis_tickangle=-45, legend_title_text="")
+        st.plotly_chart(fig_pdv_c, use_container_width=True)
+
+    # --- Résumé chiffré des agences modifiées ---
+    lignes = []
+    for ag, m in sims_actives.items():
+        a = df.loc[df["Agence"] == ag].iloc[0]
+        b = df_apres.loc[df_apres["Agence"] == ag].iloc[0]
+        lignes.append({
+            "Agence": ag,
+            "Δ CS": f"{m['delta_cs']:+d}",
+            "Δ MV": f"{m['delta_mv']:+d}",
+            "Vol/CS Avant": f"{a['Vol_2027_Par_CS']:,.0f}",
+            "Vol/CS Après": f"{b['Vol_2027_Par_CS']:,.0f}",
+            "PDV/CS Avant": f"{a['PDV_Par_CS']:.1f}",
+            "PDV/CS Après": f"{b['PDV_Par_CS']:.1f}",
+            "Statut CS Avant": a["Statut_CS"],
+            "Statut CS Après": get_statut_cs(b["PDV_Par_CS"]),
+        })
+    st.markdown("**Agences modifiées par les simulations enregistrées :**")
+    st.dataframe(
+        pd.DataFrame(lignes).style.map(
+            color_status_cells, subset=["Statut CS Avant", "Statut CS Après"]
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
 
 # ==========================================
 # 9. SIMULATION FINANCIÈRE
@@ -1037,8 +1172,8 @@ if not df_map_filtered.empty:
     apply_marker_style(fig_map, size=6, opacity=0.75)
 else:
     # Si aucun PDV, on crée une carte vide centrée sur Mada
-    fig_map = px.scatter_mapbox(
-        pd.DataFrame({"Lat": [-18.79], "Lon": [46.85]}), 
+    fig_map = scatter_map_auto(
+        pd.DataFrame({"Lat": [-18.79], "Lon": [46.85]}),
         lat="Lat", lon="Lon",
         zoom=5.5,
         center={"lat": -18.79, "lon": 46.85},
@@ -1046,7 +1181,7 @@ else:
         height=650,
         title="Cartographie des Points de Vente & Agences",
     )
-    fig_map.data = [] # On vide la trace pour ne pas afficher de point invisible
+    fig_map.data = []  # On vide la trace pour ne pas afficher de point invisible
 
 # --- AJOUT DES AGENCES SUR LA MÊME CARTE (INDÉPENDAMMENT DE L'UPLOAD) ---
 # Filtrage des agences si un filtre d'agence spécifique est sélectionné
@@ -1069,10 +1204,10 @@ if not df_agences.empty:
     
     # Personnalisation de l'apparence des agences
     for trace in fig_agences.data:
-        trace.marker.symbol = "square" # Symbole Entrepôt (carré)
-        trace.marker.color = "#FF0000" # Couleur noire
-        trace.marker.size = 14 # Taille 
-        trace.name = "Agences (Entrepôt)" # Nom de la légende
+        trace.marker.symbol = "square"  # Symbole Entrepôt (carré)
+        trace.marker.color = "#FF0000"  # Couleur rouge
+        trace.marker.size = 14  # Taille
+        trace.name = "Agences (Entrepôt)"  # Nom de la légende
 
     # Fusion de la trace des agences avec la carte existante
     for trace_ag in fig_agences.data:
