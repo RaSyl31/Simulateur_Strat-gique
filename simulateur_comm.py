@@ -821,10 +821,13 @@ st.dataframe(
 )
 
 # ==========================================
-# 8. GRAPHIQUES
+# 8. GRAPHIQUES (COULEURS NEUTRES)
 # ==========================================
 st.markdown("---")
 st.subheader("📈 Visualisation Interactive : Agence vs Moyenne Nationale")
+
+# Palette de couleurs neutres
+NEUTRAL_COLORS = ["#8c96a8", "#4b608b", "#a3b8cc", "#6b7b8c", "#9ba4b5"]
 
 g_cols = st.columns(2)
 with g_cols[0]:
@@ -832,11 +835,11 @@ with g_cols[0]:
         df, x="Agence", y="Vol_2027_Par_CS", color="Région",
         title="Volume Moyen par CS par Agence vs Cible Nationale",
         labels={"Vol_2027_Par_CS": "Volume / CS (Hls)"},
-        color_discrete_sequence=px.colors.qualitative.Plotly
+        color_discrete_sequence=NEUTRAL_COLORS
     )
-    fig_vol.add_hline(y=nat_vol_cs, line_dash="dash", line_color="#E3000F",
+    fig_vol.add_hline(y=nat_vol_cs, line_dash="dash", line_color="#444444",
                       annotation_text=f"Moyenne Nat ({nat_vol_cs:,.0f} Hls)")
-    fig_vol.add_hline(y=cible_vol_cs, line_dash="dot", line_color="#009639",
+    fig_vol.add_hline(y=cible_vol_cs, line_dash="dot", line_color="#888888",
                       annotation_text=f"Cible CS ({cible_vol_cs:,.0f} Hls)")
     fig_vol.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig_vol, use_container_width=True)
@@ -846,9 +849,9 @@ with g_cols[1]:
         df, x="Agence", y="PDV_Par_CS", color="Région",
         title="Charge PDV par CS par Agence vs Moyenne Nationale",
         labels={"PDV_Par_CS": "PDV / CS"},
-        color_discrete_sequence=px.colors.qualitative.Plotly
+        color_discrete_sequence=NEUTRAL_COLORS
     )
-    fig_pdv.add_hline(y=nat_pdv_cs, line_dash="dash", line_color="#E3000F",
+    fig_pdv.add_hline(y=nat_pdv_cs, line_dash="dash", line_color="#444444",
                       annotation_text=f"Moyenne Nat ({nat_pdv_cs:.1f} PDV)")
     fig_pdv.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig_pdv, use_container_width=True)
@@ -1195,7 +1198,6 @@ for _, row in df.iterrows():
         action = "Renfort d'Encadrement MV"
 
     # Ajout de la logique pour les nouvelles colonnes de simulation
-    # On compare l'agence en cours avec l'agence sélectionnée dans le simulateur
     if row["Agence"] == selected_sim_agence:
         sim_mv = f"{delta_mv:+d}" if delta_mv != 0 else "0"
         sim_cs = f"{delta_cs:+d}" if delta_cs != 0 else "0"
