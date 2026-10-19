@@ -287,10 +287,11 @@ st.markdown(
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }}
+    /* Couleurs des bandeaux */
     .bg-dark-blue {{ background-color: #1f4e79; }}
     .bg-light-blue {{ background-color: #5b9bd5; }}
     .bg-red {{ background-color: #c00000; }}
-    .bg-yellow {{ background-color: #ffc000; color: #333; }}
+    .bg-light-red {{ background-color: #ff7b7b; color: #333; }} /* Rouge clair */
 
     .kpi-value {{
         font-size: 1.8rem;
@@ -660,7 +661,7 @@ st.markdown(f"""
         </div>
         <!-- Carte 4 -->
         <div class="kpi-card">
-            <div class="kpi-header bg-yellow">PDV Moyens / MV</div>
+            <div class="kpi-header bg-light-red">PDV Moyens / MV</div>
             <div class="kpi-value">{nat_pdv_mv:.1f}</div>
             <div class="kpi-sub">Points de Vente</div>
         </div>
