@@ -46,6 +46,11 @@ st.markdown(
     [data-testid="stSidebarUserContent"] {{
         padding-top: 0rem !important;
     }}
+    
+    /* Enlever la marge du bloc markdown natif qui contient l'image pour remonter le logo */
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"]:first-child {{
+        margin-top: -20px !important;
+    }}
 
     /* Typographie globale */
     html, body, [class*="css"] {{
@@ -275,7 +280,7 @@ st.markdown(
         position: relative;
     }}
     .kpi-header {{
-        color: white; /* Texte en blanc pour toutes les cartes */
+        color: white;
         font-weight: 700;
         font-size: 0.85rem;
         padding: 6px 5px;
@@ -283,11 +288,9 @@ st.markdown(
         letter-spacing: 0.5px;
     }}
     
-    /* Couleurs des bandeaux - Vert STAR (gauche) et Rouge STAR (droite) */
-    .bg-green-dark {{ background-color: #007A2E; }}   /* Vert foncé */
-    .bg-green-light {{ background-color: #009639; }}  /* Vert clair */
-    .bg-red-dark {{ background-color: #B3000B; }}     /* Rouge foncé */
-    .bg-red-light {{ background-color: #E3000F; }}    /* Rouge clair / vif */
+    /* Couleurs uniques pour les bandeaux */
+    .bg-star-green {{ background-color: #009639; }} /* Vert STAR */
+    .bg-star-red {{ background-color: #E3000F; }}   /* Rouge STAR */
 
     .kpi-value {{
         font-size: 1.8rem;
@@ -635,27 +638,27 @@ st.subheader("🇲🇬 Indicateurs Clés de Référence (Moyenne Nationale)")
 # ==========================================
 st.markdown(f"""
     <div class="kpi-container">
-        <!-- Carte 1 : Vert Foncé -->
+        <!-- Carte 1 : Vert STAR -->
         <div class="kpi-card">
-            <div class="kpi-header bg-green-dark">Volume Moyen / CS</div>
+            <div class="kpi-header bg-star-green">Volume Moyen / CS</div>
             <div class="kpi-value">{nat_vol_cs:,.0f}</div>
             <div class="kpi-sub"><span class="kpi-arrow-up">↑</span> Cible : {cible_vol_cs:,.0f} Hecto</div>
         </div>
-        <!-- Carte 2 : Vert Clair -->
+        <!-- Carte 2 : Vert STAR -->
         <div class="kpi-card">
-            <div class="kpi-header bg-green-light">Volume Moyen / MV</div>
+            <div class="kpi-header bg-star-green">Volume Moyen / MV</div>
             <div class="kpi-value">{nat_vol_mv:,.0f}</div>
             <div class="kpi-sub">Hecto</div>
         </div>
-        <!-- Carte 3 : Rouge Foncé -->
+        <!-- Carte 3 : Rouge STAR -->
         <div class="kpi-card">
-            <div class="kpi-header bg-red-dark">PDV Moyens / CS</div>
+            <div class="kpi-header bg-star-red">PDV Moyens / CS</div>
             <div class="kpi-value">{nat_pdv_cs:.1f}</div>
             <div class="kpi-sub">Points de Vente</div>
         </div>
-        <!-- Carte 4 : Rouge Clair -->
+        <!-- Carte 4 : Rouge STAR -->
         <div class="kpi-card">
-            <div class="kpi-header bg-red-light">PDV Moyens / MV</div>
+            <div class="kpi-header bg-star-red">PDV Moyens / MV</div>
             <div class="kpi-value">{nat_pdv_mv:.1f}</div>
             <div class="kpi-sub">Points de Vente</div>
         </div>
