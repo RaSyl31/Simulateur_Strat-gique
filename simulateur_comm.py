@@ -1194,6 +1194,15 @@ for _, row in df.iterrows():
     elif "Surcharge MV" in row["Statut_MV"]:
         action = "Renfort d'Encadrement MV"
 
+    # Ajout de la logique pour les nouvelles colonnes de simulation
+    # On compare l'agence en cours avec l'agence sélectionnée dans le simulateur
+    if row["Agence"] == selected_sim_agence:
+        sim_mv = f"{delta_mv:+d}" if delta_mv != 0 else "0"
+        sim_cs = f"{delta_cs:+d}" if delta_cs != 0 else "0"
+    else:
+        sim_mv = "-"
+        sim_cs = "-"
+
     recap_lignes.append({
         "Région": row["Région"],
         "Agence": row["Agence"],
@@ -1203,6 +1212,8 @@ for _, row in df.iterrows():
         "Statut CS": row["Statut_CS"],
         "Statut MV": row["Statut_MV"],
         "Action Proposée": action,
+        "Simulation (+/- MV)": sim_mv,
+        "Simulation (+/- CS)": sim_cs,
     })
 
 df_recap_final = pd.DataFrame(recap_lignes)
