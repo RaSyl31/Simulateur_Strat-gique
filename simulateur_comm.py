@@ -1414,3 +1414,32 @@ for _, row in df.iterrows():
 
 df_recap_final = pd.DataFrame(recap_lignes)
 st.table(df_recap_final)
+
+# --- Export du tableau récapitulatif stratégique ---
+dl_col1, dl_col2, _ = st.columns([1, 1, 3])
+
+# Export CSV (compatible Excel grâce à l'encodage utf-8-sig)
+csv_recap = df_recap_final.to_csv(index=False, sep=";", encoding="utf-8-sig")
+dl_col1.download_button(
+    label="📥 Télécharger (CSV)",
+    data=csv_recap,
+    file_name="recapitulatif_strategique_recrutement_transferts.csv",
+    mime="text/csv",
+    key="dl_recap_csv",
+)
+
+# Export Excel (.xlsx)
+xlsx_buffer = io.BytesIO()
+with pd.ExcelWriter(xlsx_buffer, engine="openpyxl") as writer:
+    df_recap_final.to_excel(writer, index=False, sheet_name="Récapitulatif")
+    ws = writer.sheets["Récapitulatif"]
+    for col_cells in ws.columns:
+        max_len = max(len(str(c.value)) if c.value is not None else 0 for c in col_cells)
+        ws.column_dimensions[col_cells[0].column_letter].width = min(max_len + 2, 60)
+dl_col2.download_button(
+    label="📥 Télécharger (Excel)",
+    data=xlsx_buffer.getvalue(),
+    file_name="recapitulatif_strategique_recrutement_transferts.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    key="dl_recap_xlsx",
+)
