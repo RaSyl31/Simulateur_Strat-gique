@@ -847,7 +847,7 @@ st.markdown("---")
 st.subheader("📈 Visualisation Interactive : Agence vs Moyenne Nationale")
 
 # --- BARRE D'OUTILS : FILTRES ET BOUTON SIMULER ---
-filter_cols = st.columns([2, 2, 2, 1]) # Ajustement des proportions des colonnes
+filter_cols = st.columns([2, 2, 2, 1])
 
 selected_region_filter = filter_cols[0].selectbox(
     "Filtrer par Région", ["Toutes les régions"] + list(df["Région"].unique())
@@ -863,16 +863,13 @@ selected_agence_filter = filter_cols[1].selectbox(
 
 # Bouton d'activation de la simulation sur les graphes
 with filter_cols[3]:
-    st.markdown("<br>", unsafe_allow_html=True) # Alignement vertical
-    # On l'aligne à droite avec un container
+    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div style="display: flex; justify-content: flex-end;">', unsafe_allow_html=True)
     simulate_on = st.toggle("🎯 Appliquer la simulation", key="toggle_sim_graphs")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Préparation des données pour le graphique
 df_graph = df.copy()
 
-# Si le bouton "Appliquer la simulation" est activé, on modifie les données
 if simulate_on:
     for index, row in df_graph.iterrows():
         ag = row["Agence"]
@@ -880,20 +877,17 @@ if simulate_on:
             mods = st.session_state.simulations_sauvegardees[ag]
             new_cs = max(1, row["Total_CS_Propose"] + mods["delta_cs"])
             new_mv = max(1, row["MV"] + mods["delta_mv"])
-            # Recalcul
             df_graph.at[index, "Total_CS_Propose"] = new_cs
             df_graph.at[index, "MV"] = new_mv
             df_graph.at[index, "Vol_2027_Par_CS"] = row["Vol_2027_Hls"] / new_cs
             df_graph.at[index, "Vol_2027_Par_MV"] = row["Vol_2027_Hls"] / new_mv
             df_graph.at[index, "PDV_Par_CS"] = row["PDV_Total_Ajuste"] / new_cs
 
-# Application des filtres d'affichage
 if selected_region_filter != "Toutes les régions":
     df_graph = df_graph[df_graph["Région"] == selected_region_filter]
 if selected_agence_filter != "Toutes les agences":
     df_graph = df_graph[df_graph["Agence"] == selected_agence_filter]
 
-# --- AFFICHAGE DES GRAPHIQUES ---
 VIBRANT_COLORS = ["#007bff", "#6f42c1", "#fd7e14", "#17a2b8", "#e83e8c"]
 
 g_cols = st.columns(2)
@@ -922,6 +916,7 @@ with g_cols[1]:
                       annotation_text=f"Moyenne Nat ({nat_pdv_cs:.1f} PDV)")
     fig_pdv.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig_pdv, use_container_width=True)
+
 
 # ==========================================
 # 9. SIMULATION FINANCIÈRE
@@ -982,6 +977,7 @@ else:
         f"(Couverture : **{couverture_besoin:.1f}%**)."
     )
 
+
 # ==========================================
 # 10. CARTE INTERACTIVE (AGENCES + CLIENTS GPS)
 # ==========================================
@@ -1019,6 +1015,16 @@ if not df_clients_gps.empty:
             mapbox_style="open-street-map",
             height=600,
             title="Emplacement des Agences (taille ∝ Volume 2027)",
+        )
+        
+        # MODIFICATION : Mettre les agences en forme d'étoile rouge
+        fig_map.update_traces(
+            marker=dict(
+                symbol='star',
+                color='#E3000F',
+                size=16,
+                line=dict(width=1, color='white')
+            )
         )
 
     else:
@@ -1062,18 +1068,28 @@ if not df_clients_gps.empty:
                 break
 
         color_discrete_map = None
+        symbol_map = None
+        
+        # MODIFICATION : Mettre les Distributeurs STAR en entrepôt
         if color_col is not None:
             unique_vals = df_map_filtered[color_col].astype(str).unique()
             default_palette = px.colors.qualitative.Plotly
             color_discrete_map = {}
+            symbol_map = {}
             idx = 0
             for val in unique_vals:
-                if str(val).strip().upper() == "ZONE BLANCHE":
+                val_upper = str(val).strip().upper()
+                if val_upper in ["DISTRIBUTEUR STAR", "DISTRIBUTEURS STAR", "DS", "DISTRIBUTION STAR"]:
+                    color_discrete_map[val] = "#E3000F" # Rouge STAR
+                    symbol_map[val] = "star" # On l'affiche en étoile
+                elif val_upper == "ZONE BLANCHE":
                     color_discrete_map[val] = "#000000"
+                    symbol_map[val] = "circle"
                 else:
                     color_discrete_map[val] = default_palette[
                         idx % len(default_palette)
                     ]
+                    symbol_map[val] = "circle"
                     idx += 1
 
         kwargs = dict(
@@ -1092,6 +1108,17 @@ if not df_clients_gps.empty:
                 kwargs["color_discrete_map"] = color_discrete_map
 
         fig_map = scatter_map_auto(df_map_filtered, **kwargs)
+        
+        # Application des symboles
+        if color_col is not None and symbol_map is not None:
+            for trace in fig_map.data:
+                trace_name = trace.name
+                if trace_name in symbol_map:
+                    trace.marker.symbol = symbol_map[trace_name]
+                # Si c'est le distributeur star, on le grossit un peu
+                if trace_name and str(trace_name).strip().upper() in ["DISTRIBUTEUR STAR", "DISTRIBUTEURS STAR", "DS", "DISTRIBUTION STAR"]:
+                    trace.marker.size = 14
+
         apply_marker_style(fig_map, size=6, opacity=0.75)
         st.caption(f"📍 {len(df_clients_gps):,} points de vente chargés.")
 
