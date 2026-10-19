@@ -1022,7 +1022,8 @@ if not df_clients_gps.empty:
             trace.marker.symbol = 'star'
             trace.marker.color = '#E3000F'
             trace.marker.size = 16
-            trace.marker.line = dict(width=1, color='white')
+            trace.marker.line.width = 1
+            trace.marker.line.color = 'white'
 
     else:
         ag_col = None
