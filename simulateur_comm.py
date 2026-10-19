@@ -1070,7 +1070,7 @@ if not df_agences.empty:
     # Personnalisation de l'apparence des agences
     for trace in fig_agences.data:
         trace.marker.symbol = "square" # Symbole Entrepôt (carré)
-        trace.marker.color = "#000000" # Couleur noire
+        trace.marker.color = "#FF0000" # Couleur noire
         trace.marker.size = 14 # Taille 
         trace.name = "Agences (Entrepôt)" # Nom de la légende
 
