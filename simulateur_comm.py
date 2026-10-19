@@ -71,12 +71,9 @@ st.markdown(
         border-left: 8px solid transparent;
         border-image: linear-gradient(to bottom, #E3000F 50%, #009639 50%) 1;
         
-        /* Centrage vertical strict du contenu */
         display: flex;
-        align-items: center;      /* Centre verticalement */
-        justify-content: center;  /* Centre horizontalement */
-        
-        /* Hauteur fixe pour garantir le centrage */
+        align-items: center;
+        justify-content: center;
         height: 100px; 
     }}
     
@@ -107,9 +104,9 @@ st.markdown(
         font-size: 2.2rem;
         font-weight: 900;
         color: #1a1a1a;
-        margin: 0; /* Important : pas de marge */
+        margin: 0;
         padding: 0;
-        line-height: 1; /* Empêche un décalage vertical dû à l'interligne */
+        line-height: 1;
         text-transform: uppercase;
         letter-spacing: -0.5px;
         position: relative;
@@ -121,7 +118,6 @@ st.markdown(
         color: #E3000F;
     }}
 
-    /* L'étoile en absolu pour ne pas casser le centrage */
     .star-icon {{
         position: absolute;
         right: 30px;
@@ -294,9 +290,8 @@ st.markdown(
         letter-spacing: 0.5px;
     }}
     
-    /* Couleurs uniques pour les bandeaux */
-    .bg-star-green {{ background-color: #009639; }} /* Vert STAR */
-    .bg-star-red {{ background-color: #E3000F; }}   /* Rouge STAR */
+    .bg-star-green {{ background-color: #009639; }}
+    .bg-star-red {{ background-color: #E3000F; }}
 
     .kpi-value {{
         font-size: 1.8rem;
@@ -644,25 +639,21 @@ st.subheader("🇲🇬 Indicateurs Clés de Référence (Moyenne Nationale)")
 # ==========================================
 st.markdown(f"""
     <div class="kpi-container">
-        <!-- Carte 1 : Vert STAR -->
         <div class="kpi-card">
             <div class="kpi-header bg-star-green">Volume Moyen / CS</div>
             <div class="kpi-value">{nat_vol_cs:,.0f}</div>
             <div class="kpi-sub"><span class="kpi-arrow-up">↑</span> Cible : {cible_vol_cs:,.0f} Hecto</div>
         </div>
-        <!-- Carte 2 : Vert STAR -->
         <div class="kpi-card">
             <div class="kpi-header bg-star-green">Volume Moyen / MV</div>
             <div class="kpi-value">{nat_vol_mv:,.0f}</div>
             <div class="kpi-sub">Hecto</div>
         </div>
-        <!-- Carte 3 : Rouge STAR -->
         <div class="kpi-card">
             <div class="kpi-header bg-star-red">PDV Moyens / CS</div>
             <div class="kpi-value">{nat_pdv_cs:.1f}</div>
             <div class="kpi-sub">Points de Vente</div>
         </div>
-        <!-- Carte 4 : Rouge STAR -->
         <div class="kpi-card">
             <div class="kpi-header bg-star-red">PDV Moyens / MV</div>
             <div class="kpi-value">{nat_pdv_mv:.1f}</div>
@@ -759,38 +750,29 @@ st.markdown("---")
 st.subheader("🔄 Module de Simulation Avant / Après : Ajustement des Effectifs (CS & MV)")
 st.markdown(
     "Simulez l'impact d'un **recrutement ou transfert d'effectifs** (+/- CS et MV) "
-    "pour une agence et observez le recalcul automatique de la charge (Volume & PDV) "
-    "et du **code couleur de situation** :"
+    "pour une agence, enregistrez les changements, et observez le recalcul automatique "
+    "de la charge (Volume & PDV) ainsi que du **code couleur de situation** :"
 )
 
-# Gestion de l'état pour réinitialiser les champs au changement d'agence
-if "last_sim_agence" not in st.session_state:
-    st.session_state.last_sim_agence = df["Agence"].unique()[0]
-
-def reset_sim_values():
-    st.session_state.sim_delta_cs = 0
-    st.session_state.sim_delta_mv = 0
-    st.session_state.last_sim_agence = st.session_state.sim_agence_select
+# Initialisation du dictionnaire de sauvegarde des simulations
+if "simulations_sauvegardees" not in st.session_state:
+    st.session_state.simulations_sauvegardees = {}
 
 sc1, sc2, sc3 = st.columns(3)
 selected_sim_agence = sc1.selectbox(
-    "Sélectionner l'Agence à simuler", 
-    df["Agence"].unique(), 
-    key="sim_agence_select",
-    on_change=reset_sim_values
+    "Sélectionner l'Agence à simuler", df["Agence"].unique(), key="sim_agence_select"
 )
 
-# On force la valeur à 0 si on vient de changer d'agence
-if st.session_state.last_sim_agence != selected_sim_agence:
-    st.session_state.sim_delta_cs = 0
-    st.session_state.sim_delta_mv = 0
-    st.session_state.last_sim_agence = selected_sim_agence
+# On récupère les valeurs actuelles sauvegardées pour cette agence (ou 0 par défaut)
+default_cs = st.session_state.simulations_sauvegardees.get(selected_sim_agence, {}).get("delta_cs", 0)
+default_mv = st.session_state.simulations_sauvegardees.get(selected_sim_agence, {}).get("delta_mv", 0)
 
+# Les inputs utilisent une clé dynamique pour se mettre à jour quand on change d'agence
 delta_cs = sc2.number_input(
-    "Ajustement CS (+/- Recrutement/Transfert)", -15, 15, 0, step=1, key="sim_delta_cs"
+    "Ajustement CS (+/- Recrutement/Transfert)", -15, 15, default_cs, step=1, key=f"sim_delta_cs_{selected_sim_agence}"
 )
 delta_mv = sc3.number_input(
-    "Ajustement MV (+/- Recrutement/Transfert)", -5, 5, 0, step=1, key="sim_delta_mv"
+    "Ajustement MV (+/- Recrutement/Transfert)", -5, 5, default_mv, step=1, key=f"sim_delta_mv_{selected_sim_agence}"
 )
 
 row_sim_orig = df.loc[df["Agence"] == selected_sim_agence].iloc[0]
@@ -839,13 +821,31 @@ st.dataframe(
     use_container_width=True,
 )
 
+# Bouton pour enregistrer les modifications
+col_btn1, col_btn2 = st.columns([1, 4])
+with col_btn1:
+    if st.button("💾 Enregistrer cette simulation", key="save_sim"):
+        st.session_state.simulations_sauvegardees[selected_sim_agence] = {
+            "delta_cs": delta_cs,
+            "delta_mv": delta_mv
+        }
+        st.success(f"Modifications sauvegardées pour {selected_sim_agence} !")
+        st.rerun()
+
+# Affichage des simulations actives pour info
+if st.session_state.simulations_sauvegardees:
+    st.info("📌 **Simulations actives en mémoire :**")
+    for ag, mods in st.session_state.simulations_sauvegardees.items():
+        if mods['delta_cs'] != 0 or mods['delta_mv'] != 0:
+            st.write(f"- **{ag}** : CS {mods['delta_cs']:+d} | MV {mods['delta_mv']:+d}")
+
+
 # ==========================================
 # 8. GRAPHIQUES (COULEURS VIVES)
 # ==========================================
 st.markdown("---")
 st.subheader("📈 Visualisation Interactive : Agence vs Moyenne Nationale")
 
-# Palette de couleurs vives (hors rouge/vert)
 VIBRANT_COLORS = ["#007bff", "#6f42c1", "#fd7e14", "#17a2b8", "#e83e8c"]
 
 g_cols = st.columns(2)
@@ -1182,7 +1182,7 @@ for _, row in df.iterrows():
             st.success("✅ **Équilibre opérationnel validé.**")
 
 # ==========================================
-# 12. RÉCAPITULATIF FINAL
+# 12. RÉCAPITULATIF FINAL (INTÉGRATION DES SIMULATIONS SAUVEGARDÉES)
 # ==========================================
 st.markdown("---")
 st.subheader("🎯 Récapitulatif Stratégique : Propositions de Recrutement & Transferts")
@@ -1216,13 +1216,27 @@ for _, row in df.iterrows():
     elif "Surcharge MV" in row["Statut_MV"]:
         action = "Renfort d'Encadrement MV"
 
-    # Ajout de la logique pour les nouvelles colonnes de simulation
-    if row["Agence"] == selected_sim_agence:
-        sim_mv = f"{delta_mv:+d}" if delta_mv != 0 else "0"
-        sim_cs = f"{delta_cs:+d}" if delta_cs != 0 else "0"
+    # --- Récupération des modifications sauvegardées ---
+    saved_mods = st.session_state.simulations_sauvegardees.get(row["Agence"])
+    
+    if saved_mods:
+        sim_mv = f"{saved_mods['delta_mv']:+d}" if saved_mods['delta_mv'] != 0 else "0"
+        sim_cs = f"{saved_mods['delta_cs']:+d}" if saved_mods['delta_cs'] != 0 else "0"
+        
+        # Recalcul des statuts avec les modifs sauvegardées
+        new_cs = max(1, row['Total_CS_Propose'] + saved_mods['delta_cs'])
+        new_mv = max(1, row['MV'] + saved_mods['delta_mv'])
+        new_vol_cs = row['Vol_2027_Hls'] / new_cs
+        new_vol_mv = row['Vol_2027_Hls'] / new_mv
+        new_pdv_cs = row['PDV_Total_Ajuste'] / new_cs
+        
+        statut_cs_apres = get_statut_cs(new_pdv_cs)
+        statut_mv_apres = get_statut_mv(new_vol_mv)
     else:
-        sim_mv = "-"
-        sim_cs = "-"
+        sim_mv = "."
+        sim_cs = "."
+        statut_cs_apres = row["Statut_CS"]
+        statut_mv_apres = row["Statut_MV"]
 
     recap_lignes.append({
         "Région": row["Région"],
@@ -1230,8 +1244,8 @@ for _, row in df.iterrows():
         "Volume 2027 (Hls)": f"{row['Vol_2027_Hls']:,.0f}",
         "PDV Totaux": f"{row['PDV_Total_Ajuste']:,.0f}",
         "Charge CS (PDV/CS)": f"{row['PDV_Par_CS']:.1f}",
-        "Statut CS": row["Statut_CS"],
-        "Statut MV": row["Statut_MV"],
+        "Statut CS": statut_cs_apres,
+        "Statut MV": statut_mv_apres,
         "Action Proposée": action,
         "Simulation (+/- MV)": sim_mv,
         "Simulation (+/- CS)": sim_cs,
