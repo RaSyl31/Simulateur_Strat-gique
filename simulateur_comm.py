@@ -763,10 +763,29 @@ st.markdown(
     "et du **code couleur de situation** :"
 )
 
+# Gestion de l'état pour réinitialiser les champs au changement d'agence
+if "last_sim_agence" not in st.session_state:
+    st.session_state.last_sim_agence = df["Agence"].unique()[0]
+
+def reset_sim_values():
+    st.session_state.sim_delta_cs = 0
+    st.session_state.sim_delta_mv = 0
+    st.session_state.last_sim_agence = st.session_state.sim_agence_select
+
 sc1, sc2, sc3 = st.columns(3)
 selected_sim_agence = sc1.selectbox(
-    "Sélectionner l'Agence à simuler", df["Agence"].unique(), key="sim_agence_select"
+    "Sélectionner l'Agence à simuler", 
+    df["Agence"].unique(), 
+    key="sim_agence_select",
+    on_change=reset_sim_values
 )
+
+# On force la valeur à 0 si on vient de changer d'agence
+if st.session_state.last_sim_agence != selected_sim_agence:
+    st.session_state.sim_delta_cs = 0
+    st.session_state.sim_delta_mv = 0
+    st.session_state.last_sim_agence = selected_sim_agence
+
 delta_cs = sc2.number_input(
     "Ajustement CS (+/- Recrutement/Transfert)", -15, 15, 0, step=1, key="sim_delta_cs"
 )
@@ -821,13 +840,13 @@ st.dataframe(
 )
 
 # ==========================================
-# 8. GRAPHIQUES (COULEURS NEUTRES)
+# 8. GRAPHIQUES (COULEURS VIVES)
 # ==========================================
 st.markdown("---")
 st.subheader("📈 Visualisation Interactive : Agence vs Moyenne Nationale")
 
-# Palette de couleurs neutres
-NEUTRAL_COLORS = ["#8c96a8", "#4b608b", "#a3b8cc", "#6b7b8c", "#9ba4b5"]
+# Palette de couleurs vives (hors rouge/vert)
+VIBRANT_COLORS = ["#007bff", "#6f42c1", "#fd7e14", "#17a2b8", "#e83e8c"]
 
 g_cols = st.columns(2)
 with g_cols[0]:
@@ -835,11 +854,11 @@ with g_cols[0]:
         df, x="Agence", y="Vol_2027_Par_CS", color="Région",
         title="Volume Moyen par CS par Agence vs Cible Nationale",
         labels={"Vol_2027_Par_CS": "Volume / CS (Hls)"},
-        color_discrete_sequence=NEUTRAL_COLORS
+        color_discrete_sequence=VIBRANT_COLORS
     )
-    fig_vol.add_hline(y=nat_vol_cs, line_dash="dash", line_color="#444444",
+    fig_vol.add_hline(y=nat_vol_cs, line_dash="dash", line_color="#343a40",
                       annotation_text=f"Moyenne Nat ({nat_vol_cs:,.0f} Hls)")
-    fig_vol.add_hline(y=cible_vol_cs, line_dash="dot", line_color="#888888",
+    fig_vol.add_hline(y=cible_vol_cs, line_dash="dot", line_color="#fd7e14",
                       annotation_text=f"Cible CS ({cible_vol_cs:,.0f} Hls)")
     fig_vol.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig_vol, use_container_width=True)
@@ -849,9 +868,9 @@ with g_cols[1]:
         df, x="Agence", y="PDV_Par_CS", color="Région",
         title="Charge PDV par CS par Agence vs Moyenne Nationale",
         labels={"PDV_Par_CS": "PDV / CS"},
-        color_discrete_sequence=NEUTRAL_COLORS
+        color_discrete_sequence=VIBRANT_COLORS
     )
-    fig_pdv.add_hline(y=nat_pdv_cs, line_dash="dash", line_color="#444444",
+    fig_pdv.add_hline(y=nat_pdv_cs, line_dash="dash", line_color="#343a40",
                       annotation_text=f"Moyenne Nat ({nat_pdv_cs:.1f} PDV)")
     fig_pdv.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig_pdv, use_container_width=True)
