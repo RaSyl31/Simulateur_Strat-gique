@@ -65,7 +65,6 @@ st.markdown(
         border-left: 8px solid transparent;
         border-image: linear-gradient(to bottom, #E3000F 50%, #009639 50%) 1;
         
-        /* Flexbox pour le centrage vertical et horizontal */
         display: flex;
         justify-content: center;
         align-items: center;
@@ -95,7 +94,6 @@ st.markdown(
         pointer-events: none;
     }}
 
-    /* Le texte prend 100% de la place pour être centré tout seul */
     .header-title-star {{
         font-size: 2.2rem;
         font-weight: 900;
@@ -114,7 +112,6 @@ st.markdown(
         color: #E3000F;
     }}
 
-    /* L'étoile est placée en absolu pour ne pas casser le centrage */
     .star-icon {{
         position: absolute;
         right: 30px;
@@ -168,7 +165,6 @@ st.markdown(
         border-right: 4px solid #009639;
     }}
     
-    /* Logo Sidebar - Taille contrôlée et espace réduit */
     .sidebar-logo-container {{
         text-align: center;
         padding: 0 0 10px 0;
@@ -180,7 +176,6 @@ st.markdown(
         height: auto;
     }}
 
-    /* Titres de la sidebar */
     [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, 
     [data-testid="stSidebar"] h3 {{
@@ -280,18 +275,19 @@ st.markdown(
         position: relative;
     }}
     .kpi-header {{
-        color: white;
+        color: white; /* Texte en blanc pour toutes les cartes */
         font-weight: 700;
         font-size: 0.85rem;
         padding: 6px 5px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }}
-    /* Couleurs des bandeaux */
-    .bg-dark-blue {{ background-color: #1f4e79; }}
-    .bg-light-blue {{ background-color: #5b9bd5; }}
-    .bg-red {{ background-color: #c00000; }}
-    .bg-light-red {{ background-color: #ff7b7b; color: #ffffff; }} /* Rouge clair avec texte blanc */
+    
+    /* Couleurs des bandeaux - Vert STAR (gauche) et Rouge STAR (droite) */
+    .bg-green-dark {{ background-color: #007A2E; }}   /* Vert foncé */
+    .bg-green-light {{ background-color: #009639; }}  /* Vert clair */
+    .bg-red-dark {{ background-color: #B3000B; }}     /* Rouge foncé */
+    .bg-red-light {{ background-color: #E3000F; }}    /* Rouge clair / vif */
 
     .kpi-value {{
         font-size: 1.8rem;
@@ -318,8 +314,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Le texte est dans une div à 100% de largeur pour être centré
-# L'étoile est séparée dans un span absolu pour ne pas décaler le texte
 st.markdown(
     """
     <div class="header-star">
@@ -641,27 +635,27 @@ st.subheader("🇲🇬 Indicateurs Clés de Référence (Moyenne Nationale)")
 # ==========================================
 st.markdown(f"""
     <div class="kpi-container">
-        <!-- Carte 1 -->
+        <!-- Carte 1 : Vert Foncé -->
         <div class="kpi-card">
-            <div class="kpi-header bg-dark-blue">Volume Moyen / CS</div>
+            <div class="kpi-header bg-green-dark">Volume Moyen / CS</div>
             <div class="kpi-value">{nat_vol_cs:,.0f}</div>
             <div class="kpi-sub"><span class="kpi-arrow-up">↑</span> Cible : {cible_vol_cs:,.0f} Hecto</div>
         </div>
-        <!-- Carte 2 -->
+        <!-- Carte 2 : Vert Clair -->
         <div class="kpi-card">
-            <div class="kpi-header bg-light-blue">Volume Moyen / MV</div>
+            <div class="kpi-header bg-green-light">Volume Moyen / MV</div>
             <div class="kpi-value">{nat_vol_mv:,.0f}</div>
             <div class="kpi-sub">Hecto</div>
         </div>
-        <!-- Carte 3 -->
+        <!-- Carte 3 : Rouge Foncé -->
         <div class="kpi-card">
-            <div class="kpi-header bg-red">PDV Moyens / CS</div>
+            <div class="kpi-header bg-red-dark">PDV Moyens / CS</div>
             <div class="kpi-value">{nat_pdv_cs:.1f}</div>
             <div class="kpi-sub">Points de Vente</div>
         </div>
-        <!-- Carte 4 -->
+        <!-- Carte 4 : Rouge Clair -->
         <div class="kpi-card">
-            <div class="kpi-header bg-light-red">PDV Moyens / MV</div>
+            <div class="kpi-header bg-red-light">PDV Moyens / MV</div>
             <div class="kpi-value">{nat_pdv_mv:.1f}</div>
             <div class="kpi-sub">Points de Vente</div>
         </div>
