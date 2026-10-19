@@ -1097,14 +1097,6 @@ selected_agence_map = filter_cols_map[1].selectbox(
     "Agence", list_agences_map, key="map_filter_agence"
 )
 
-# 3. Bouton de réinitialisation
-with filter_cols_map[2]:
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔄 Tout afficher", use_container_width=True, key="map_reset_filters"):
-        st.session_state["map_filter_region"] = "Toutes les régions"
-        st.session_state["map_filter_agence"] = "Toutes les agences"
-        st.rerun()
-
 # --- TRAITEMENT DES DONNÉES SELON LES FILTRES ---
 ag_col = None
 if not df_clients_gps.empty:
