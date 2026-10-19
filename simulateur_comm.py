@@ -1076,7 +1076,6 @@ st.markdown('<div id="section-carte"></div>', unsafe_allow_html=True)
 st.subheader("🗺️ Carte Interactive : Agences & Points de Vente Détaillés")
 
 # --- BARRE DE FILTRES CARTE (RÉGION ET AGENCE) ---
-st.markdown("### 🔍 Filtrer l'affichage de la carte")
 filter_cols_map = st.columns([1.5, 1.5, 1])
 
 # 1. Filtre Région
