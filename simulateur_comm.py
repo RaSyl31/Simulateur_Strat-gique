@@ -1418,16 +1418,6 @@ st.table(df_recap_final)
 # --- Export du tableau récapitulatif stratégique ---
 dl_col1, dl_col2, _ = st.columns([1, 1, 3])
 
-# Export CSV (compatible Excel grâce à l'encodage utf-8-sig)
-csv_recap = df_recap_final.to_csv(index=False, sep=";", encoding="utf-8-sig")
-dl_col1.download_button(
-    label="📥 Télécharger (CSV)",
-    data=csv_recap,
-    file_name="recapitulatif_strategique_recrutement_transferts.csv",
-    mime="text/csv",
-    key="dl_recap_csv",
-)
-
 # Export Excel (.xlsx)
 xlsx_buffer = io.BytesIO()
 with pd.ExcelWriter(xlsx_buffer, engine="openpyxl") as writer:
