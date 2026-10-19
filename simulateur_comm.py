@@ -847,7 +847,7 @@ st.markdown("---")
 st.subheader("📈 Visualisation Interactive : Agence vs Moyenne Nationale")
 
 # --- BARRE D'OUTILS : FILTRES ET BOUTON SIMULER ---
-filter_cols = st.columns([1, 1, 1, 1])
+filter_cols = st.columns([2, 2, 2, 1]) # Ajustement des proportions des colonnes
 
 selected_region_filter = filter_cols[0].selectbox(
     "Filtrer par Région", ["Toutes les régions"] + list(df["Région"].unique())
@@ -862,9 +862,12 @@ selected_agence_filter = filter_cols[1].selectbox(
 )
 
 # Bouton d'activation de la simulation sur les graphes
-with filter_cols[2]:
+with filter_cols[3]:
     st.markdown("<br>", unsafe_allow_html=True) # Alignement vertical
+    # On l'aligne à droite avec un container
+    st.markdown('<div style="display: flex; justify-content: flex-end;">', unsafe_allow_html=True)
     simulate_on = st.toggle("🎯 Appliquer la simulation", key="toggle_sim_graphs")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Préparation des données pour le graphique
 df_graph = df.copy()
