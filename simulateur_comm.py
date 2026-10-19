@@ -837,59 +837,17 @@ if st.session_state.simulations_sauvegardees:
 
 
 # ==========================================
-# 8. GRAPHIQUES (AVEC FILTRE ET BOUTON SIMULER)
+# 8. GRAPHIQUES (COULEURS VIVES)
 # ==========================================
 st.markdown("---")
 st.subheader("📈 Visualisation Interactive : Agence vs Moyenne Nationale")
-
-# --- BARRE D'OUTILS : FILTRES ET BOUTON SIMULER ---
-filter_cols = st.columns([2, 2, 2, 1])
-
-selected_region_filter = filter_cols[0].selectbox(
-    "Filtrer par Région", ["Toutes les régions"] + list(df["Région"].unique())
-)
-
-available_agences = df["Agence"].unique()
-if selected_region_filter != "Toutes les régions":
-    available_agences = df[df["Région"] == selected_region_filter]["Agence"].unique()
-
-selected_agence_filter = filter_cols[1].selectbox(
-    "Filtrer par Agence", ["Toutes les agences"] + list(available_agences)
-)
-
-# Bouton d'activation de la simulation sur les graphes
-with filter_cols[3]:
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div style="display: flex; justify-content: flex-end;">', unsafe_allow_html=True)
-    simulate_on = st.toggle("🎯 Appliquer la simulation", key="toggle_sim_graphs")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-df_graph = df.copy()
-
-if simulate_on:
-    for index, row in df_graph.iterrows():
-        ag = row["Agence"]
-        if ag in st.session_state.simulations_sauvegardees:
-            mods = st.session_state.simulations_sauvegardees[ag]
-            new_cs = max(1, row["Total_CS_Propose"] + mods["delta_cs"])
-            new_mv = max(1, row["MV"] + mods["delta_mv"])
-            df_graph.at[index, "Total_CS_Propose"] = new_cs
-            df_graph.at[index, "MV"] = new_mv
-            df_graph.at[index, "Vol_2027_Par_CS"] = row["Vol_2027_Hls"] / new_cs
-            df_graph.at[index, "Vol_2027_Par_MV"] = row["Vol_2027_Hls"] / new_mv
-            df_graph.at[index, "PDV_Par_CS"] = row["PDV_Total_Ajuste"] / new_cs
-
-if selected_region_filter != "Toutes les régions":
-    df_graph = df_graph[df_graph["Région"] == selected_region_filter]
-if selected_agence_filter != "Toutes les agences":
-    df_graph = df_graph[df_graph["Agence"] == selected_agence_filter]
 
 VIBRANT_COLORS = ["#007bff", "#6f42c1", "#fd7e14", "#17a2b8", "#e83e8c"]
 
 g_cols = st.columns(2)
 with g_cols[0]:
     fig_vol = px.bar(
-        df_graph, x="Agence", y="Vol_2027_Par_CS", color="Région",
+        df, x="Agence", y="Vol_2027_Par_CS", color="Région",
         title="Volume Moyen par CS par Agence vs Cible Nationale",
         labels={"Vol_2027_Par_CS": "Volume / CS (Hls)"},
         color_discrete_sequence=VIBRANT_COLORS
@@ -903,7 +861,7 @@ with g_cols[0]:
 
 with g_cols[1]:
     fig_pdv = px.bar(
-        df_graph, x="Agence", y="PDV_Par_CS", color="Région",
+        df, x="Agence", y="PDV_Par_CS", color="Région",
         title="Charge PDV par CS par Agence vs Moyenne Nationale",
         labels={"PDV_Par_CS": "PDV / CS"},
         color_discrete_sequence=VIBRANT_COLORS
@@ -912,7 +870,6 @@ with g_cols[1]:
                       annotation_text=f"Moyenne Nat ({nat_pdv_cs:.1f} PDV)")
     fig_pdv.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig_pdv, use_container_width=True)
-
 
 # ==========================================
 # 9. SIMULATION FINANCIÈRE
@@ -973,7 +930,6 @@ else:
         f"(Couverture : **{couverture_besoin:.1f}%**)."
     )
 
-
 # ==========================================
 # 10. CARTE INTERACTIVE (AGENCES + CLIENTS GPS)
 # ==========================================
@@ -1013,15 +969,11 @@ if not df_clients_gps.empty:
             title="Emplacement des Agences (taille ∝ Volume 2027)",
         )
         
-        # CORRECTION : Utilisation de update_traces
-        fig_map.update_traces(
-            marker=dict(
-                symbol='star', 
-                color='#E3000F',
-                size=16,
-                line=dict(width=1, color='white')
-            )
-        )
+        # CORRECTION : Boucler sur les traces pour éviter le crash de update_traces
+        for trace in fig_map.data:
+            trace.marker.symbol = 'star'
+            trace.marker.color = '#E3000F'
+            trace.marker.size = 16
 
     else:
         ag_col = None
@@ -1105,7 +1057,7 @@ if not df_clients_gps.empty:
 
         fig_map = scatter_map_auto(df_map_filtered, **kwargs)
         
-        # CORRECTION : Utilisation de update_traces avec selecteurs si besoin
+        # CORRECTION : Boucler sur les traces pour appliquer les symboles
         if color_col is not None and symbol_map is not None:
             for trace in fig_map.data:
                 trace_name = trace.name
