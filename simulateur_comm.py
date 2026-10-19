@@ -841,17 +841,62 @@ if st.session_state.simulations_sauvegardees:
 
 
 # ==========================================
-# 8. GRAPHIQUES (COULEURS VIVES)
+# 8. GRAPHIQUES (AVEC FILTRE ET BOUTON SIMULER)
 # ==========================================
 st.markdown("---")
 st.subheader("📈 Visualisation Interactive : Agence vs Moyenne Nationale")
 
+# --- BARRE D'OUTILS : FILTRES ET BOUTON SIMULER ---
+filter_cols = st.columns([1, 1, 1, 1])
+
+selected_region_filter = filter_cols[0].selectbox(
+    "Filtrer par Région", ["Toutes les régions"] + list(df["Région"].unique())
+)
+
+available_agences = df["Agence"].unique()
+if selected_region_filter != "Toutes les régions":
+    available_agences = df[df["Région"] == selected_region_filter]["Agence"].unique()
+
+selected_agence_filter = filter_cols[1].selectbox(
+    "Filtrer par Agence", ["Toutes les agences"] + list(available_agences)
+)
+
+# Bouton d'activation de la simulation sur les graphes
+with filter_cols[2]:
+    st.markdown("<br>", unsafe_allow_html=True) # Alignement vertical
+    simulate_on = st.toggle("🎯 Appliquer la simulation", key="toggle_sim_graphs")
+
+# Préparation des données pour le graphique
+df_graph = df.copy()
+
+# Si le bouton "Appliquer la simulation" est activé, on modifie les données
+if simulate_on:
+    for index, row in df_graph.iterrows():
+        ag = row["Agence"]
+        if ag in st.session_state.simulations_sauvegardees:
+            mods = st.session_state.simulations_sauvegardees[ag]
+            new_cs = max(1, row["Total_CS_Propose"] + mods["delta_cs"])
+            new_mv = max(1, row["MV"] + mods["delta_mv"])
+            # Recalcul
+            df_graph.at[index, "Total_CS_Propose"] = new_cs
+            df_graph.at[index, "MV"] = new_mv
+            df_graph.at[index, "Vol_2027_Par_CS"] = row["Vol_2027_Hls"] / new_cs
+            df_graph.at[index, "Vol_2027_Par_MV"] = row["Vol_2027_Hls"] / new_mv
+            df_graph.at[index, "PDV_Par_CS"] = row["PDV_Total_Ajuste"] / new_cs
+
+# Application des filtres d'affichage
+if selected_region_filter != "Toutes les régions":
+    df_graph = df_graph[df_graph["Région"] == selected_region_filter]
+if selected_agence_filter != "Toutes les agences":
+    df_graph = df_graph[df_graph["Agence"] == selected_agence_filter]
+
+# --- AFFICHAGE DES GRAPHIQUES ---
 VIBRANT_COLORS = ["#007bff", "#6f42c1", "#fd7e14", "#17a2b8", "#e83e8c"]
 
 g_cols = st.columns(2)
 with g_cols[0]:
     fig_vol = px.bar(
-        df, x="Agence", y="Vol_2027_Par_CS", color="Région",
+        df_graph, x="Agence", y="Vol_2027_Par_CS", color="Région",
         title="Volume Moyen par CS par Agence vs Cible Nationale",
         labels={"Vol_2027_Par_CS": "Volume / CS (Hls)"},
         color_discrete_sequence=VIBRANT_COLORS
@@ -865,7 +910,7 @@ with g_cols[0]:
 
 with g_cols[1]:
     fig_pdv = px.bar(
-        df, x="Agence", y="PDV_Par_CS", color="Région",
+        df_graph, x="Agence", y="PDV_Par_CS", color="Région",
         title="Charge PDV par CS par Agence vs Moyenne Nationale",
         labels={"PDV_Par_CS": "PDV / CS"},
         color_discrete_sequence=VIBRANT_COLORS
